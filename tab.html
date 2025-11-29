@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>New Tab</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="container">
+            <!--site shortcut links-->
+            <div class="shortcuts">
+                <a href="https://gmail.com" class="shortcut">
+                    <img src="art/gamil.png" alt="Gmail">
+                    <span>Gmail</span>
+                </a>
+                <a href="https://github.com" class="shortcut">
+                    <img src="art/git.png" alt="Github">
+                    <span>Github</span>
+                </a>
+                <a href="https://etrade.com" class="shortcut">
+                    <img src="art/etrade.png" alt="Etrade">
+                    <span>Etrade</span>
+                </a>
+                <a href="https://smls.myschoolapp.com" class="shortcut">
+                    <img src="art/smls.png" alt="MySMLS">
+                    <span>MySMLS</span>
+                </a>
+                <a href="https://docs.google.com/" class="shortcut">
+                    <img src="art/docs.png" alt="Docs">
+                    <span>Google Docs</span>
+                </a>
+                <a href="https://drive.google.com/" class="shortcut">
+                    <img src="art/drive.png" alt="Drive">
+                    <span>Google Drive</span>
+                </a>
+                <a href="https://slack.com/" class="shortcut">
+                    <img src="art/slack.png" alt="Slack">
+                    <span>Slack</span>
+                </a>
+            </div>
+            <!--calender & to-do (make drag n drop)-->
+            <div class="planner">
+                <div class="calender">
+                    <h2 id="date"></h2>
+                </div>
+
+                <div class="todo">
+                    <h3>To-Do</h3>
+                    <input type="text" if="todoInput" placeholder="Add a task...">
+                    <ul id="todoList"></ul>
+                </div>
+            </div>
+        </div>
+        <script src="script.js"></script>
+    </body>
+</html>
