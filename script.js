@@ -6,65 +6,132 @@ function updateDate() {
 }
 
 //to-do list functionality
-let todos = []; //seperate into academic and lifestyle
+let todos = { academic: [], lifestyle: [] }; 
 
-function loadTodos () {
-    Chrome.storage.local.get(['todos'], (result) => {
-        todos = result.todos || [];
-        renderTodos();
-    });
+//add function to generate time slots from 6 am to 11pm
+function generateTimeSlots() {
+    const container = document.getElementById('timeBlocks');
+    container.innerHTML = '';
+
+    for (let h = 6; h <= 23; h++) {
+        const slot = document.createElement('div');
+        slot.className = 'time-slot';
+        slot.dataset.hour = h;
+
+        const time = h % 12 === 0 ? 12 : h % 12;
+        const ampm = h < 12 ? 'AM' : 'PM';
+
+        slot.innerHTML = `  
+            <div class="time-label">${time}:00 ${ampm}</div>
+            <div class="time-slot-content"></div>
+        `;
+
+        //make time slot a drop zone
+        const content = slot.querySelector('.time-slot-content');
+        content.addEventListener('dragover', handleDragOver);
+        content.addEventListener('drop', handleDrop);
+
+        container.appendChild(slot);
+    }
+
+    renderSchedule();
 }
 
+//load data
+function loadData() {
+    chrome.storage.local.get(['todos', 'schedule'], (result) => {
+        todos = result.todos || { academic: [], lifestyle: [] };
+        schedule = result.schedule || [];
+        renderTodos();
+        renderSchedule();
+    });
+}
+//save data
 function saveTodos() {
-    chrome.storage.local.set({ todos });
+    chrome.storage.local.set({ todos, schedule });
 }
 
 function renderTodos() {
-    const list = document.getElementById('todoList');
-    list.innerHTML = '';
+    ['academic', 'lifestyle'].forEach(cat => {
+        const list = document.getElementById(`${cat}List`);
+        list.innerHTML = '';
 
-    todos.forEach((todo, i) => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-            <span>${todo}</span>
-            <button class="delete-btn" onclick="deleteTodo(${li})">x</button>
-        `;
-        list.appendChild(li);
+        todos[cat].forEach((todo, i) => {
+            const li = document.createElement('li');
+            li.className = 'todo-item';
+            li.draggable = true;
+            li.dataset.category = cat;
+            li.dataset.index = i;
+
+            li.innerHTML = `
+                <div class="todo-item-content">
+                    <div class="todo-item-title>${todo.text}</div>
+                    <div class="todo-item-duration">${todo.duration} min</div>
+                </div>
+                <button class="delete-btn" onclick="deleteTodo('${cat}', ${i})">x</button>
+            `;
+
+            li.addEventListener('dragstart', handleDragStart);
+            li.addEventListener('dragend', handleDragEnd);
+
+            list.appendChild(li);
+        });
+    });
+}
+
+//render schedule
+function renderSchedule() {
+    //clear existing scheduled tasks
+    document.querySelectorAll('.scheduled-task').forEach(el => el.remove());
+
+    schedule.forEach((item, i) => {
+        const slot = document.querySelector(`[data-hour="${item.hour}"] .time-slot-content`);
+        if (slot) {
+            const task = document.createElement('div');
+            task.className = `scheduled-task ${item.category}`;
+            task.innerHTML = `
+                <div class="scheduled-task-title">${item.text}</div>
+                <div class="scheduled-task-time">${item.duration} min</div>
+                <button class="remove-scheduled" onclick="removeScheduled(${i})">x</button>
+            `;
+            slot.appendChild(task);
+        }
     });
 }
 
 function addTodo() {
     const input = document.getElementById('todoInput');
+    const category = document.getElementById('categorySelect').value;
+    const duration = parseInt(document.getElementById('durationInput').value) || 30;
     const text = input.value.trim();
 
     if (text) {
-        todos.push(text);
+        todos[category].push({ text, duration });
         saveTodos();
         renderTodos();
         input.value="";
     }
 }
 
-function deleteTodo() {
-    todos.splice(i, 1);
+function deleteTodo(cat, i) {
+    todos[cat].splice(i, 1);
     saveTodos();
     renderTodos();
 }
-//add function to generate time slots from 6 am to 11pm
-//drag n drop todo tasks into timeslots function
 
-//drag n drop handlers
-//start, end, oveR, drop
+//remove scheduled task
+function removeScheduled(i) {
+    const item = schedule[i];
+    //add back to list
+    todos[item.category].push({ text: item.text, duration: item.duration });
+    schedule.splice(i, 1);
+    saveTodos();
+    renderTodos();
+    renderSchedule();
+}
 
 //shortcuts functionality
 let shortcuts = [];
-
-function loadShortcuts() {
-    chrome.storage.local.get(['shortcuts'], (result) => {
-        shortcuts = SpeechRecognitionResultList.shortcuts || [];
-        renderShortcuts();
-    });
-}
 
 function saveShortcuts() {
     chrome.storage.local.set({ shortcuts });
@@ -72,14 +139,14 @@ function saveShortcuts() {
 
 function renderShortcuts() {
     const container = document.getElementById('shortcuts');
-    container.innerHTML = ``;
+    container.innerHTML = '';
 
     shortcuts.forEach((shortcut, i) => {
         const a = document.createElement('a');
         a.href =shortcut.url;
         a.className= 'shortcut';
 
-        const icpm = document.createElement('div');
+        const icon = document.createElement('div');
         icon.className = 'shortcut-icon';
 
         if (shortcut.image) {
@@ -116,7 +183,7 @@ function renderShortcuts() {
     container.appendChild(addBtn);
 }
 
-function deleteShortcut() {
+function deleteShortcut(i) {
     shortcuts.splice(i, 1);
     saveShortcuts();
     renderShortcuts();
@@ -128,8 +195,8 @@ const modal = document.getElementById('modal');
 function openModal() {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]) {
-            document.getElementById('siteUrl').valye = tabs[0].url;
-            document.getElementById('siteName').valye = tabs[0].title;
+            document.getElementById('siteUrl').value = tabs[0].url;
+            document.getElementById('siteName').value = tabs[0].title;
         }
     });
 
@@ -173,13 +240,68 @@ document.getElementById('saveBtn').onclick = () => {
     }
 };
 
+//drag n drop todo tasks into timeslots function
+
+//drag n drop handlers
+let draggedItem = null;
+
+function handleDragStart(e) {
+    draggedItem = {
+        category: this.dataset.category,
+        index: parseInt(this.dataset.index),
+        text: todos[this.dataset.category][this.dataset.index].text,
+        duration: todos[this.dataset.category][this.dataset.index].duration
+    };
+    this.classList.add('dragging');
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    this.parentElement.classList.add('drop-zone');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    this.parentElement.classList.remove('drop-zone');
+
+    if(draggedItem) {
+        const hour = parseInt(this.parentElement.dataset.hour);
+
+        //add to schedule
+        schedule.push({
+            ...draggedItem,
+            hour
+        });
+
+        //remove from todo list
+        todos[draggedItem.category].splice(draggedItem.index, 1);
+
+        saveTodos();
+        renderTodos();
+        renderSchedule();
+
+        draggedItem = null;
+    }
+}
+
 //event listeners 
+document.getElementById('addBtn').addEventListener('click', addTodo);
 document.getElementById('todoInput').addEventListener('keypress', (e) => {
     if (e.key === "Enter") addTodo();
 });
 
+//remove drop zone when drag leaves
+document.addEventListener('dragleave', (e) => {
+    if (e.target.classList.contains('time-slot-content')) {
+        e.target.parentElement.classList.remove('drop-zone');
+    }
+});
 //init
 updateDate();
 loadTodos();
-loadShortcuts();
+loadData();
 

@@ -51,12 +51,11 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 40px;
-    max-width: 800px;
-    margin: 0 auto;
 }
 
-.calendar h2 {
+.todo-section h2 {
     font-size: 2rem;
+    margin-bottom: 20px;
 }
 
 .todo {
@@ -66,6 +65,7 @@ body {
 }
 
 .todo h3 {
+    font-size: 2rem;
     margin-bottom: 15px;
 }
 
@@ -77,10 +77,18 @@ body {
     background: #333;
     color: #fff;
     margin-bottom: 15px;
+    flex: 1;
+}
+
+.todo-lists {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
 }
 
 #todoList {
     list-style: none;
+    min-height: 200px;
 }
 
 #todoList li {
@@ -102,30 +110,158 @@ body {
     cursor: pointer;
 }
 
-/*todo section h2*/
+.todo-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
 
-/*todo input group*/
 
-/*category select, duration input*/
+#categorySelect, #durationInput {
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    background: #333;
+    color: #fff
+}
 
-/*add btn*/
+#durationInput {
+    width: 80px;
+}
 
-/*todo items*/
+#addBtn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    background: #666;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+}
 
-/*calender*/
+#addBtn:hover {
+    background: #555;
+}
 
-/*time blocks*/
+.todo-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #222;
+    border-radius: 6px;
+    cursor: grad;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s;
+}
 
-/*time slots*/
+.todo-item:hover {
+    transform: translateX(4px);
+}
 
-/*time label*/
+.todo-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
 
-/*scheduled task*/
+.todo-item-content {
+    flex: 1;
+}
 
-/*scheduled task.academic*/
+.todo-item-title {
+    font-weight: 500;
+}
 
-/*scheduled task.lifestyle*/
+.todo-item-duration {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 4px;
+}
 
-/*scheduled task title*/
 
-/*remove schedule*/
+.calender {
+    background: #222;
+    padding: 20px;
+    border-radius: 12px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.calender h3 {
+    margin-bottom: 15px;
+    position: sticky;
+    top: 0;
+    background: #222;
+    padding-bottom: 10px;
+}
+
+.time-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.time-slot {
+    display: flex;
+    min-height: 60px;
+    border-bottom: 1px solid #333;
+}
+
+.time-label {
+    width: 70px;
+    padding: 8px;
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.time-slot-content {
+    flex: 1;
+    padding: 4px;
+    position: relative;
+}
+
+.time-slot.drop-zone {
+    background: #333;
+}
+
+.scheduled-task {
+    background: #444;
+    padding: 10px;
+    border-radius: 6px;
+    margin: 2px 0;
+    cursor: pointer;
+    position: relative;
+}
+
+.scheduled-task.academic {
+    background: #222;
+}
+
+.scheduled-task.lifestyle {
+    background: #222;
+}
+
+.scheduled-task-title {
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+.scheduled-task-time {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-top: 4px;
+}
+
+.remove-schedule {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #555;
+    border: none;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.7rem;
+}
