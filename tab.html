@@ -42,12 +42,17 @@
             <!--calender & to-do-->
             <div class="planner">
                 <div class="todo-section">
-                    <div class="clock-schedule">
+                    <h2 id="date"></h2>
+
+                    <div class="block-schedule">
                         <div class="schedule-header">
                             <h3>Today's Classes</h3>
-                            <button id="setScheduleBtn" class="schedule-btn">Set Start Date</button>
+                            <div>
+                                <button id="setScheduleBtn" class="schedule-btn">Set Start Date</button>
+                                <button id="editBlockBtn" class="schedule-btn">Edit Block</button>
+                            </div>
                         </div>
-                        <div id="blockDisplay" class="clock-display"></div>
+                        <div id="blockDisplay" class="block-display"></div>
                     </div>
 
                     <div class="todo-input-group">
@@ -57,7 +62,7 @@
                             <option value="lifestyle">Lifestyle</option>
                         </select>
                         <input type="number" id="durationInput" placeholder="mins" min="15", step="15" value="30">
-                        <button id="addBtn">Add</button>
+                        <button id="addTodoBtn">Add</button>
                     </div>
 
                     <div class="todo-lists">
@@ -79,6 +84,54 @@
                 </div>
             </div>
         </div>
+
         <script src="script.js"></script>
+
+        <!--Block schedule setup modal-->
+        <div id="blockModal" clas="modal">
+            <div class="modal-content">
+                <h2>Set up ur course schedule!</h2>
+
+                <div class="block-inputs">
+                    <div class="block-input-row">
+                        <label>Block A:</label>
+                        <input type="text" id="blockA">
+                    </div>
+                    <div class="block-input-row">
+                        <label>Block B:</label>
+                        <input type="text" id="blockB">
+                    </div>
+                    <div class="block-input-row">
+                        <label>Block C:</label>
+                        <input type="text" id="blockC">
+                    </div>
+                    <div class="block-input-row">
+                        <label>Block D:</label>
+                        <input type="text" id="blockD">
+                    </div>
+                    <div class="block-input-row">
+                        <label>Block E:</label>
+                        <input type="text" id="blockE">
+                    </div>
+                    <div class="block-input-row">
+                        <label>Block F:</label>
+                        <input type="text" id="blockF">
+                    </div>
+                    <div class="block-input-row">
+                        <label>Block G:</label>
+                        <input type="text" id="blockG">
+                    </div>
+                    <div class="block-input-row">
+                        <label>Block H:</label>
+                        <input type="text" id="blockH">
+                    </div>
+
+                    <div class="modal-buttons">
+                        <button id="cancelBlockBtn">Cancel</button>
+                        <button id="saveBlockBtn">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </body>
 </html>
