@@ -1,14 +1,62 @@
+//data structures
+let todos = { academic: [], lifestyle: [] }; 
+let shortcuts = [];
+let schedule = [];
+let scheduleStartDate = null;
+
+//block rotation schedule
+const blockRotation = [
+    ['A', 'B', 'C', 'D'],
+    ['E', 'F', 'G', 'H'],
+    ['C', 'D', 'A', 'B'],
+    ['G', 'H', 'E', 'F'],
+    ['D', 'C', 'B', 'A'],
+    ['H', 'G', 'F', 'E'],
+    ['B', 'A', 'D', 'C'],
+    ['F', 'E', 'H', 'G']
+];
+
 //display current date
 function updateDate() {
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('date').textContent = now.toLocaleDateString('en-US', options);
+    updateBlockSchedule();
 }
 
-//to-do list functionality
-let todos = { academic: [], lifestyle: [] }; 
+//update course schedule
+function updateBlockSchedule() {
+    const display = document.getElementById('blockDisplay');
 
-//add function to generate time slots from 6 am to 11pm
+    if (!scheduleStartDate) {
+        display.innerHTML = '<span class="empty">Click "Set Start Date" to begin tracking your schedule</span>';
+        return;
+    }
+
+    const startDate = new Date(scheduleStartDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    startDate.setHours(0, 0, 0, 0);
+
+    const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+    const cycleDay = ((daysDiff % 8) + 8) % 8;
+
+    const todayBlocks = blockRotation[cycleDay];
+
+    display.innerHTML = todayBlocks
+        .map(block => `<div class="block-item">Block ${block}</div>`)
+        .join('');
+}
+
+function setScheduleStartDate() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    scheduleStartDate = today.toISOString();
+    saveTodos();
+    updateBlockSchedule();
+}
+
+//generate time slots from 6 am to 11pm
 function generateTimeSlots() {
     const container = document.getElementById('timeBlocks');
     container.innerHTML = '';
@@ -39,16 +87,21 @@ function generateTimeSlots() {
 
 //load data
 function loadData() {
-    chrome.storage.local.get(['todos', 'schedule'], (result) => {
+    chrome.storage.local.get(['todos', 'schedule', 'shortcuts', 'scheduleStartDate'], (result) => {
         todos = result.todos || { academic: [], lifestyle: [] };
         schedule = result.schedule || [];
+        shortcuts = result.shortcuts || [];
+        scheduleStartDate = result.scheduleStartDate || null;
         renderTodos();
         renderSchedule();
+        renderShortcuts();
+        updateBlockSchedule();
     });
 }
+
 //save data
 function saveTodos() {
-    chrome.storage.local.set({ todos, schedule });
+    chrome.storage.local.set({ todos, schedule, shortcuts, scheduleStartDate });
 }
 
 function renderTodos() {
@@ -65,7 +118,7 @@ function renderTodos() {
 
             li.innerHTML = `
                 <div class="todo-item-content">
-                    <div class="todo-item-title>${todo.text}</div>
+                    <div class="todo-item-title">${todo.text}</div>
                     <div class="todo-item-duration">${todo.duration} min</div>
                 </div>
                 <button class="delete-btn" onclick="deleteTodo('${cat}', ${i})">x</button>
@@ -131,8 +184,6 @@ function removeScheduled(i) {
 }
 
 //shortcuts functionality
-let shortcuts = [];
-
 function saveShortcuts() {
     chrome.storage.local.set({ shortcuts });
 }
@@ -143,8 +194,8 @@ function renderShortcuts() {
 
     shortcuts.forEach((shortcut, i) => {
         const a = document.createElement('a');
-        a.href =shortcut.url;
-        a.className= 'shortcut';
+        a.href = shortcut.url;
+        a.className = 'shortcut';
 
         const icon = document.createElement('div');
         icon.className = 'shortcut-icon';
@@ -177,8 +228,7 @@ function renderShortcuts() {
 
     const addBtn = document.createElement('button');
     addBtn.className = 'shortcut add-shortcut';
-    addBtn.id = 'addBtn';
-    addBtn.innerHTML = '<div class="shortcut-icon plus">+</div><span>Ass Site</span>';
+    addBtn.innerHTML = '<div class="shortcut-icon plus">+</div><span>Add Site</span>';
     addBtn.onclick = openModal;
     container.appendChild(addBtn);
 }
@@ -199,7 +249,6 @@ function openModal() {
             document.getElementById('siteName').value = tabs[0].title;
         }
     });
-
     modal.classList.add('active');
 }
 
@@ -207,7 +256,7 @@ function closeModal() {
     modal.classList.remove('active');
     document.getElementById('siteName').value = '';
     document.getElementById('siteUrl').value = '';
-    document.getElementById('iconLetter').value ='';
+    document.getElementById('iconLetter').value = '';
     document.getElementById('iconColor').value = '#4a9eff';
     document.getElementById('iconUpload').value = '';
 }
@@ -239,6 +288,9 @@ document.getElementById('saveBtn').onclick = () => {
         closeModal();
     }
 };
+
+//setup schedule button
+document.getElementById('setScheduleBtn').onclick = setScheduleStartDate;
 
 //drag n drop todo tasks into timeslots function
 
@@ -289,7 +341,6 @@ function handleDrop(e) {
 }
 
 //event listeners 
-document.getElementById('addBtn').addEventListener('click', addTodo);
 document.getElementById('todoInput').addEventListener('keypress', (e) => {
     if (e.key === "Enter") addTodo();
 });
@@ -300,8 +351,8 @@ document.addEventListener('dragleave', (e) => {
         e.target.parentElement.classList.remove('drop-zone');
     }
 });
+
 //init
 updateDate();
-loadTodos();
+generateTimeSlots();
 loadData();
-

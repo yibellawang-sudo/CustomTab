@@ -2,17 +2,15 @@
     "manifest_version": 3,
     "name": "Custom New Tab",
     "version": "1.0",
-    "description": "Custom new tab page with sote shortcuts and daily planner",
+    "description": "Custom new tab page with site shortcuts and daily planner",
     "chrome_url_overrides": {
         "newtab": "tab.html"
     },
-    "permisions": [
+    "permissions": [
         "storage",
         "tabs"
     ],
     "icons": {
-        "16": "icon.png",
-        "48": "icon.png",
-        "128": "icon.png"
+        "128": "art/Icon.png"
     }
 }

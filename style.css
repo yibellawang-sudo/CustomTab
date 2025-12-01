@@ -1,267 +1,300 @@
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-    font-family: 'Courier New', Courier; /*placeholder*/
-    background: #111;
-    color: #fff;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #1a1a1a;
+  color: #fff;
+  min-height: 100vh;
+  padding: 40px 20px;
 }
 
 .container {
-    width: 90%;
-    max-width: 1200px;
+  width: 90%;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .shortcuts {
-    display: flex;
-    gap: 30px;
-    justify-content: center;
-    margin-bottom: 60px;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
 }
 
 .shortcut {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-decoration: none;
-    color: #fff;
-    transition: transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #fff;
+  transition: transform 0.2s;
 }
 
 .shortcut:hover {
-    transform: translateY(-2px);
+  transform: translateY(-5px);
 }
 
 .shortcut img {
-    width: 80px;
-    height: 80px;
-    border-radius: 16px;
-    margin-bottom: 10px;
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  margin-bottom: 10px;
 }
 
 .planner {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 30px;
 }
 
 .todo-section h2 {
-    font-size: 2rem;
-    margin-bottom: 20px;
+  font-size: 1.8rem;
+  margin-bottom: 15px;
 }
 
-.todo {
-    background: #222;
-    padding: 20px;
-    border-radius: 12px
+.block-schedule {
+  background: #2a2a2a;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
 }
 
-.todo h3 {
-    font-size: 2rem;
-    margin-bottom: 15px;
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
-#todoInput {
-    width: 100%;
-    padding: 10px;
-    border: none;
-    border-radius: 4px;
-    background: #333;
-    color: #fff;
-    margin-bottom: 15px;
-    flex: 1;
+.schedule-header h3 {
+  font-size: 1rem;
+  margin: 0;
 }
 
-.todo-lists {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+.schedule-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: #555;
+  color: white;
+  cursor: pointer;
+  font-size: 0.85rem;
 }
 
-#todoList {
-    list-style: none;
-    min-height: 200px;
+.schedule-btn:hover {
+  background: #666;
 }
 
-#todoList li {
-    padding: 10px;
-    margin-bottom: 8px;
-    background: #333;
-    border-radius: 4px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.block-display {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.delete-btn {
-    background: #ff4444;
-    border: none;
-    color: white;
-    padding: 4px 10px;
-    border-radius: 4px;
-    cursor: pointer;
+.block-item {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.block-display.empty {
+  color: #888;
+  font-style: italic;
+  padding: 8px 0;
 }
 
 .todo-input-group {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
+#todoInput {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #fff;
+}
 
 #categorySelect, #durationInput {
-    padding: 10px;
-    border: none;
-    border-radius: 6px;
-    background: #333;
-    color: #fff
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #fff;
 }
 
 #durationInput {
-    width: 80px;
+  width: 80px;
 }
 
 #addBtn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    background: #666;
-    color: white;
-    cursor: pointer;
-    font-weight: 600;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #4CAF50;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
 }
 
 #addBtn:hover {
-    background: #555;
+  background: #45a049;
+}
+
+.todo-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.todo-column h3 {
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+
+.todo-list {
+  list-style: none;
+  min-height: 200px;
 }
 
 .todo-item {
-    padding: 12px;
-    margin-bottom: 8px;
-    background: #222;
-    border-radius: 6px;
-    cursor: grad;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: transform 0.2s;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: #2a2a2a;
+  border-radius: 6px;
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s;
 }
 
 .todo-item:hover {
-    transform: translateX(4px);
+  transform: translateX(4px);
 }
 
 .todo-item.dragging {
-    opacity: 0.5;
-    cursor: grabbing;
+  opacity: 0.5;
+  cursor: grabbing;
 }
 
 .todo-item-content {
-    flex: 1;
+  flex: 1;
 }
 
 .todo-item-title {
-    font-weight: 500;
+  font-weight: 500;
 }
 
 .todo-item-duration {
-    font-size: 0.85rem;
-    color: #888;
-    margin-top: 4px;
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 4px;
 }
 
-
-.calender {
-    background: #222;
-    padding: 20px;
-    border-radius: 12px;
-    max-height: 600px;
-    overflow-y: auto;
+.delete-btn {
+  background: #ff4444;
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px;
 }
 
-.calender h3 {
-    margin-bottom: 15px;
-    position: sticky;
-    top: 0;
-    background: #222;
-    padding-bottom: 10px;
+.calendar {
+  background: #2a2a2a;
+  padding: 20px;
+  border-radius: 12px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.calendar h3 {
+  margin-bottom: 15px;
+  position: sticky;
+  top: 0;
+  background: #2a2a2a;
+  padding-bottom: 10px;
 }
 
 .time-blocks {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .time-slot {
-    display: flex;
-    min-height: 60px;
-    border-bottom: 1px solid #333;
+  display: flex;
+  min-height: 60px;
+  border-bottom: 1px solid #3a3a3a;
 }
 
 .time-label {
-    width: 70px;
-    padding: 8px;
-    font-size: 0.85rem;
-    color: #888;
+  width: 70px;
+  padding: 8px;
+  font-size: 0.85rem;
+  color: #888;
 }
 
 .time-slot-content {
-    flex: 1;
-    padding: 4px;
-    position: relative;
+  flex: 1;
+  padding: 4px;
+  position: relative;
 }
 
 .time-slot.drop-zone {
-    background: #333;
+  background: #3a3a3a;
 }
 
 .scheduled-task {
-    background: #444;
-    padding: 10px;
-    border-radius: 6px;
-    margin: 2px 0;
-    cursor: pointer;
-    position: relative;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 10px;
+  border-radius: 6px;
+  margin: 2px 0;
+  cursor: pointer;
+  position: relative;
 }
 
 .scheduled-task.academic {
-    background: #222;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
 .scheduled-task.lifestyle {
-    background: #222;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
 .scheduled-task-title {
-    font-weight: 500;
-    font-size: 1rem;
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .scheduled-task-time {
-    font-size: 0.75rem;
-    opacity: 0.8;
-    margin-top: 4px;
+  font-size: 0.75rem;
+  opacity: 0.9;
+  margin-top: 4px;
 }
 
-.remove-schedule {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: #555;
-    border: none;
-    color: white;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 0.7rem;
+.remove-scheduled {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0,0,0,0.3);
+  border: none;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.7rem;
 }
