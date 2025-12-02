@@ -7,38 +7,6 @@
     </head>
     <body>
         <div class="container">
-            <!--site shortcut links-->
-            <div class="shortcuts">
-                <a href="https://gmail.com" class="shortcut">
-                    <img src="art/Gmail.png" alt="Gmail">
-                    <span>Gmail</span>
-                </a>
-                <a href="https://github.com" class="shortcut">
-                    <img src="art/Git.png" alt="Github">
-                    <span>Github</span>
-                </a>
-                <a href="https://etrade.com" class="shortcut">
-                    <img src="art/Stocks.png" alt="Etrade">
-                    <span>Etrade</span>
-                </a>
-                <a href="https://smls.myschoolapp.com" class="shortcut">
-                    <img src="art/School.png" alt="MySMLS">
-                    <span>MySMLS</span>
-                </a>
-                <a href="https://docs.google.com/" class="shortcut">
-                    <img src="art/Docs.png" alt="Docs">
-                    <span>Google Docs</span>
-                </a>
-                <a href="https://drive.google.com/" class="shortcut">
-                    <img src="art/Drive.png" alt="Drive">
-                    <span>Google Drive</span>
-                </a>
-                <!--
-                <a href="https://slack.com/" class="shortcut">
-                    <img src="art/slack.png" alt="Slack">
-                    <span>Slack</span>
-                </a> -->
-            </div>
             <!--calender & to-do-->
             <div class="planner">
                 <div class="todo-section">
@@ -49,7 +17,7 @@
                             <h3>Today's Classes</h3>
                             <div>
                                 <button id="setScheduleBtn" class="schedule-btn">Set Start Date</button>
-                                <button id="editBlockBtn" class="schedule-btn">Edit Block</button>
+                                <button id="editBlocksBtn" class="schedule-btn">Edit Blocks</button>
                             </div>
                         </div>
                         <div id="blockDisplay" class="block-display"></div>
@@ -61,7 +29,7 @@
                             <option value="academic">Academic</option>
                             <option value="lifestyle">Lifestyle</option>
                         </select>
-                        <input type="number" id="durationInput" placeholder="mins" min="15", step="15" value="30">
+                        <input type="number" id="durationInput" placeholder="mins" min="15" step="15" value="30">
                         <button id="addTodoBtn">Add</button>
                     </div>
 
@@ -76,6 +44,11 @@
                             <ul id="lifestyleList" class="todo-list" data-category="lifestyle"></ul>
                         </div>
                     </div>
+
+                    <div class="completed-section">
+                        <h3>Completed Today</h3>
+                        <ul id="completedList" class="completed-list"></ul>
+                    </div>
                 </div>
 
                 <div class="calendar">
@@ -87,43 +60,87 @@
 
         <script src="script.js"></script>
 
+        <!--site shortcut links-->
+        <div class="shortcuts">
+            <a href="https://gmail.com" class="shortcut">
+                <img src="art/Gmail.png" alt="Gmail">
+                <span>Gmail</span>
+            </a>
+            <a href="https://github.com" class="shortcut">
+                <img src="art/Git.png" alt="Github">
+                <span>Github</span>
+            </a>
+            <a href="https://etrade.com" class="shortcut">
+                <img src="art/Stocks.png" alt="Etrade">
+                <span>Etrade</span>
+            </a>
+            <a href="https://smls.myschoolapp.com" class="shortcut">
+                <img src="art/School.png" alt="MySMLS">
+                <span>MySMLS</span>
+            </a>
+            <a href="https://docs.google.com/" class="shortcut">
+                <img src="art/Docs.png" alt="Docs">
+                <span>Google Docs</span>
+            </a>
+            <a href="https://drive.google.com/" class="shortcut">
+                <img src="art/Drive.png" alt="Drive">
+                <span>Google Drive</span>
+            </a>
+        </div>
+
         <!--Block schedule setup modal-->
-        <div id="blockModal" clas="modal">
+        <div id="blockModal" class="modal">
             <div class="modal-content">
-                <h2>Set up ur course schedule!</h2>
+                <h2>Set up your course schedule</h2>
 
                 <div class="block-inputs">
                     <div class="block-input-row">
                         <label>Block A:</label>
-                        <input type="text" id="blockA">
+                        <input type="checkbox" id="spareA">
+                        <label class="spare-label">Spare</label>
+                        <input type="text" id="blockA" placeholder="Course name">
                     </div>
                     <div class="block-input-row">
                         <label>Block B:</label>
-                        <input type="text" id="blockB">
+                        <input type="checkbox" id="spareB">
+                        <label class="spare-label">Spare</label>
+                        <input type="text" id="blockB" placeholder="Course name">
                     </div>
                     <div class="block-input-row">
                         <label>Block C:</label>
-                        <input type="text" id="blockC">
+                        <input type="checkbox" id="spareC">
+                        <label class="spare-label">Spare</label>
+                        <input type="text" id="blockC" placeholder="Course name">
                     </div>
                     <div class="block-input-row">
                         <label>Block D:</label>
-                        <input type="text" id="blockD">
+                        <input type="checkbox" id="spareD">
+                        <label class="spare-label">Spare</label>
+                        <input type="text" id="blockD" placeholder="Course name">
                     </div>
                     <div class="block-input-row">
                         <label>Block E:</label>
-                        <input type="text" id="blockE">
+                        <input type="checkbox" id="spareE">
+                        <label class="spare-label">Spare</label>
+                        <input type="text" id="blockE" placeholder="Course name">
                     </div>
                     <div class="block-input-row">
                         <label>Block F:</label>
-                        <input type="text" id="blockF">
+                        <input type="checkbox" id="spareF">
+                        <label class="spare-label">Spare</label>
+                        <input type="text" id="blockF" placeholder="Course name">
                     </div>
                     <div class="block-input-row">
                         <label>Block G:</label>
-                        <input type="text" id="blockG">
+                        <input type="checkbox" id="spareG">
+                        <label class="spare-label">Spare</label>
+                        <input type="text" id="blockG" placeholder="Course name">
                     </div>
                     <div class="block-input-row">
                         <label>Block H:</label>
-                        <input type="text" id="blockH">
+                        <input type="checkbox" id="spareH">
+                        <label class="spare-label">Spare</label>
+                        <input type="text" id="blockH" placeholder="Course name">
                     </div>
 
                     <div class="modal-buttons">
