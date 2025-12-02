@@ -10,6 +10,12 @@ let blockNames = {
 };
 
 //variable checking if the blocks are spares
+let blockIsSpare = {
+    A: false, B: false, C: false, D: false,
+    E: false, F: false, G: false, H: false
+}
+
+let completedTasks = [];
 
 //block rotation schedule
 const blockRotation = [
@@ -101,9 +107,10 @@ function generateTimeSlots() {
         //check if current hour contains a class 
         let classAdded = false;
         classPeriods.forEach((period, idx) => {
-            if (h >= Math.floor(period.start) && h < Math.ceil(period.end)) {
-                if (!classAdded && todayBlocks.length > 0) {
-                    const block = todayBlocks[idx];
+            if (h >= Math.floor(period.start) && todayBlocks.length > 0) {
+                const block = todayBlocks[idx];
+
+                if (!blockIsSpare[block]) {
                     const className = blockNames[block] || `Block ${block}`;
                     
                     const classDiv = document.createElement('div');
@@ -113,11 +120,9 @@ function generateTimeSlots() {
                         <div class="scheduled-task-time">${period.label}</div>
                     `;
                     content.appendChild(classDiv);
-                    classAdded = true;
                 }
             }
         });
-
         content.addEventListener('dragover', handleDragOver);
         content.addEventListener('drop', handleDrop);
 
@@ -129,27 +134,67 @@ function generateTimeSlots() {
 
 //load data
 function loadData() {
-    chrome.storage.local.get(['todos', 'schedule', 'shortcuts', 'scheduleStartDate', 'blockNames'], (result) => {
-        todos = result.todos || { academic: [], lifestyle: [] };
-        schedule = result.schedule || [];
-        shortcuts = result.shortcuts || [];
-        scheduleStartDate = result.scheduleStartDate || null;
-        blockNames = result.blockNames || { A: '', B: '', C: '', D: '', E: '', F: '', G: '', H: '' };
-        renderTodos();
-        renderSchedule();
-        renderShortcuts();
-        generateTimeSlots();
-        
-        //prompt user to set block names if not set
-        if (!blockNames.A && !blockNames.B && !scheduleStartDate) {
-            openBlockModal();
-        }
-    });
+    try {
+        chrome.storage.local.get(['todos', 'schedule', 'shortcuts', 'scheduleStartDate', 'blockNames'], (result) => {
+            todos = result.todos || { academic: [], lifestyle: [] };
+            schedule = result.schedule || [];
+            shortcuts = result.shortcuts || [];
+            scheduleStartDate = result.scheduleStartDate || null;
+            blockNames = result.blockNames || { A: '', B: '', C: '', D: '', E: '', F: '', G: '', H: '' };
+            blockIsSpare = result.blockIsSpare || { A: false, B: false, C: false, D: false, E: false, F: false, G: false, H: false };
+            completedTasks = result.completedTasks || [];
+            postLoadInit();
+        });
+    } catch (e) {
+        loadFromFallback();
+        postLoadInit();
+    }
+}
+
+function postLoadInit() {
+    
 }
 
 //save data
 function saveTodos() {
-    chrome.storage.local.set({ todos, schedule, shortcuts, scheduleStartDate, blockNames });
+    try {
+        chrome.storage.local.set({ todos, schedule, shortcuts, scheduleStartDate, blockNames, blockIsSpare, completedTasks });
+    } catch (e) {
+        try {
+            localStorage.setItem('todos', JSON.stringify(todos));
+            localStorage.setItem('schedule', JSON.stringify(schedule));
+            localStorage.setItem('shortcuts', JSON.stringify(shortcuts));
+            localStorage.setItem('scheduleStartDate', JSON.stringify(scheduleStartDate));
+            localStorage.setItem('blockNames', JSON.stringify(blockNames));
+            localStorage.setItem('blockIsSpare', JSON.stringify(blockIsSpare));
+            localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+        } catch (err) { /*ignore*/ }
+    }
+}
+
+function loadFromFallback() {
+    try {
+        const t = localStorage.getItem('todos');
+        if (t) todos = JSON.parse(t);
+
+        const s = localStorage.getItem('schedule');
+        if (s) todos = JSON.parse(t);
+
+        const sc = localStorage.getItem('shortcuts');
+        if (sc) todos = JSON.parse(t);
+
+        const sd = localStorage.getItem('scheduleStartDate');
+        if (sd) todos = JSON.parse(t);
+
+        const bn = localStorage.getItem('blockNames');
+        if (bn) todos = JSON.parse(t);
+
+        const bis = localStorage.getItem('blockIsSpare');
+        if (bis) todos = JSON.parse(t);
+
+        const ct = localStorage.getItem('completedTasks');
+        if (ct) todos = JSON.parse(t);
+    } catch (e) { /*ignore*/ }
 }
 
 function renderTodos() {
@@ -187,21 +232,67 @@ function renderSchedule() {
 
     //make the height of the block correspond to the length of the task
     schedule.forEach((item, i) => {
+        const startHr = item.hour;
+        const duration = item.duration;
+        const durationHrs = duration / 60;
+
         const slot = document.querySelector(`[data-hour="${item.hour}"] .time-slot-content`);
         if (slot) {
             const task = document.createElement('div');
-            task.className = `scheduled-task ${item.category}`;
+            task.className = `scheduled-task ${item.category} ${item.completed ? 'completed' : 'incomplete'}`;
+            task.style.height = `${durationHrs * 60}px`;
             task.innerHTML = `
                 <div class="scheduled-task-title">${item.text}</div>
                 <div class="scheduled-task-time">${item.duration} min</div>
                 <button class="remove-scheduled" onclick="removeScheduled(${i})">x</button>
+                <button class="complete-btn" onclick="completeTask(${i})">√</button>
             `;
             slot.appendChild(task);
         }
     });
 }
 
-//functions for completed tasks (render, complete, delete)
+//completed tasks functionality
+function renderCompletedTasks() {
+    const container = document.getElementById('completedList');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    completedTasks.forEach((task, i) => {
+        const li = document.createElement('li');
+        li.className = 'completed-item';
+        li.innerHTML = `
+            <div class="completed-content">
+                <div class="completed-title">${task.text}</div>
+            </div>
+            <button class="delete-completed" onclick="removeCompleted(${i})">x</button>
+        `
+        container.appendChild(li);
+    });
+}
+
+function completeTask(i) {
+    const task = schedule[i];
+
+    task.completed = true;
+
+    completedTasks.push({
+        text: task.text,
+        timestamp: new Date().toISOString()
+    });
+
+    saveTodos();
+    renderSchedule();
+    renderCompletedTasks();
+}
+
+
+function removeCompleted(i) {
+    completedTasks.splice(i, 1);
+    saveTodos();
+    renderCompletedTasks();
+}
 
 function addTodo() {
     const input = document.getElementById('todoInput');
@@ -323,10 +414,12 @@ function openBlockModal() {
         // Populate current values
         ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].forEach(block => {
             const input = document.getElementById(`block${block}`);
-            if (input) {
-                input.value = blockNames[block] || '';
-            }
-            //check if spare
+            if (input) input.value = blockNames[block] || '';
+            const spare = document.getElementById(`spare${block}`);
+            if (spare) {
+                spare.checked = blockIsSpare[block] || false;
+                toggleBlockInput(block);
+            } 
         });
         blockModal.classList.add('active');
     }
@@ -339,7 +432,16 @@ function closeBlockModal() {
     }
 }
 
-//function toggle block input if spare checked
+function toggleBlockInput(block) {
+    const spare = document.getElementById(`spare${block}`);
+    const input = document.getElementById(`block${block}`);
+    if (spare && input) {
+        input.disabled = spare.checked;
+        if (spare.checked) {
+            input.value = '';
+        }
+    }
+}
 
 
 //setup event listeners after DOM loads
@@ -431,7 +533,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    //add spare checkbox listeners
+    //spare checkbox listeners
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].forEach(block => {
+        const spare = document.getElementById(`spare${block}`);
+        if (spare) {
+            spare.addEventListener('change', () => toggleBlockInput(block));
+        }
+    });
 });
 
 //drag n drop handlers

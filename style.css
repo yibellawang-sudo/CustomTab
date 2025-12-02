@@ -5,7 +5,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: "Copperplate", fantasy;
   background: #1a1a1a;
   color: #fff;
   min-height: 100vh;
@@ -136,7 +136,7 @@ body {
 
 .block-item {
   padding: 8px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #cc0000;
   border-radius: 6px;
   font-weight: 600;
   font-size: 1.1rem;
@@ -324,7 +324,7 @@ body {
 }
 
 .calendar h3 {
-  margin-bottom: 15px;
+  margin-bottom: 5px;
   position: sticky;
   top: 0;
   background: #111;
@@ -346,7 +346,7 @@ body {
 
 .time-label {
   width: 70px;
-  padding: 8px;
+  padding:3px;
   font-size: 0.85rem;
   color: #666;
 }
@@ -389,11 +389,11 @@ body {
 
 .scheduled-task-title {
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.7rem;
 }
 
 .scheduled-task-time {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   opacity: 0.9;
   margin-top: 4px;
 }
@@ -553,3 +553,11 @@ body {
     border-color: #aa0000;
 }
 
+.scheduled-task.incomplete {
+    background: #cc0000; 
+}
+
+.scheduled-task.completed {
+    background: #ccc; 
+    text-decoration: line-through;
+}
