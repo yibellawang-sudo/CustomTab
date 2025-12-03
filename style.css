@@ -316,7 +316,7 @@ body {
 
 .calendar {
   background: #111;
-  border: 1px solid #333;
+  border: 1px solid #cc0000;
   padding: 20px;
   border-radius: 12px;
   max-height: 600px;
@@ -341,14 +341,14 @@ body {
 .time-slot {
   display: flex;
   min-height: 60px;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid #cc0000;
 }
 
 .time-label {
   width: 70px;
   padding:3px;
   font-size: 0.85rem;
-  color: #666;
+  color: #ddd;
 }
 
 .time-slot-content {
@@ -382,8 +382,8 @@ body {
 }
 
 .scheduled-task.class-block {
-    background: #111;
-    border: 1px solid #333;
+    background: #666;
+    border: 1px solid #fff;
     cursor: default;
 }
 
