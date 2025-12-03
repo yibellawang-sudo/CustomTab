@@ -41,25 +41,32 @@ const classPeriods = [
 function updateDate() {
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('date').textContent = now.toLocaleDateString('en-US', options);
+    const el = document.getElementById('date');
+    if (el) el.textContent = now.toLocaleDateString('en-US', options);
     generateTimeSlots();
 }
 
-function setScheduleStartDate() {
-    const dec2 = new Date('2024-12-02');
-    dec2.setHours(0, 0, 0, 0);
-    
+function setScheduleStartDate() {    
     const startDate = new Date('2024-11-28');
     startDate.setHours(0, 0, 0, 0);
     
     scheduleStartDate = startDate.toISOString();
     saveTodos();
     updateBlockSchedule();
+    generateTimeSlots();
 }
 
 //generate time slots from 6 am to 11pm
 function generateTimeSlots() {
     const container = document.getElementById('timeBlocks');
+    if (!container) return;
+
+    //consistent sizing for absolute positioning strat
+    const hrs = 23 - 6 + 1;
+    container.style.position = 'relative';
+    container.style.height = `${hrs + 60}px`;
+    container.style.boxSizing = 'border-box';
+
     container.innerHTML = '';
 
     let todayBlocks = [];
@@ -93,38 +100,67 @@ function generateTimeSlots() {
         const slot = document.createElement('div');
         slot.className = 'time-slot';
         slot.dataset.hour = h;
+        slot.style.position = 'absolute';
+        slot.style.left = '0';
+
+        slot.style.top = `${(h - 6) * 60}px`;
+        slot.style.height = '60px';
+        slot.style.width = '100%';
+        slot.style.boxSizing = 'border-box';
+        slot.style.borderBottom = '1px solid rgba(0, 0, 0, 0.06)';
 
         const time = h % 12 === 0 ? 12 : h % 12;
         const ampm = h < 12 ? 'AM' : 'PM';
+
+        const timeLabel = document.createElement('div');
+        timeLabel.className = 'time-label';
+        timeLable.style.position = 'absolute';
+        timeLable.style.left = '8px';
+        timeLable.style.top = '12px';
+        timeLable.style.width = '90px';
+        timeLable.textContent = `${time}:00 ${ampm}`;
+
+        slot.appendChild(timeLabel);
+
+        const content = document.createElement('div');
+        content.className = 'time-slot-content';
+        content.style.position = 'absolute';
+        content.style.left = '110px';
+        content.style.right = '8px';
+        content.style.top = '0';
+        content.style.height = '60px';
+        content.style.overflow = 'visible'; // allow overflow
+        slot.appendChild(content);
 
         slot.innerHTML = `  
             <div class="time-label">${time}:00 ${ampm}</div>
             <div class="time-slot-content"></div>
         `;
 
-        const content = slot.querySelector('.time-slot-content');
-
         //check if current hour contains a class 
-        let classAdded = false;
-        classPeriods.forEach((period, idx) => {
-            if (h >= Math.floor(period.start) && todayBlocks.length > 0) {
-                const block = todayBlocks[idx];
-
-                if (!blockIsSpare[block]) {
-                    const className = blockNames[block] || `Block ${block}`;
-                    
-                    const classDiv = document.createElement('div');
-                    classDiv.className = 'scheduled-task class-block';
-                    classDiv.innerHTML = `
-                        <div class="scheduled-task-title">${className}</div>
-                        <div class="scheduled-task-time">${period.label}</div>
-                    `;
-                    content.appendChild(classDiv);
+        if (todayBlocks.length = 0) {
+            classPeriods.forEach((period, idx) => {
+                if (h === Math.floor(period.start)) {
+                    const block = todayBlocks[idx];
+                    if (!blockIsSpare[block]) {
+                        const className = blockNames[block] || `Block ${block}`;
+                        
+                        const classDiv = document.createElement('div');
+                        classDiv.className = 'scheduled-task class-block';
+                        classDiv.style.position = 'absolute';
+                        classDiv.style.left = '110px';
+                        classDiv.style.top = '0';
+                        classDiv.style.height = `${Math.ceil((period.end - period.start) * 60)}px`;
+                        classDiv.style.width = `calc(100% - 120px)`;
+                        classDiv.innerHTML = `
+                            <div class="scheduled-task-title">${className}</div>
+                            <div class="scheduled-task-time">${period.label}</div>
+                        `;
+                        slot.appendChild(classDiv);
+                    }
                 }
-            }
-        });
-        content.addEventListener('dragover', handleDragOver);
-        content.addEventListener('drop', handleDrop);
+            });
+        }
 
         container.appendChild(slot);
     }
@@ -152,7 +188,14 @@ function loadData() {
 }
 
 function postLoadInit() {
-    
+    renderTodos();
+    renderShortcuts();
+    renderCompletedTasks();
+    generateTimeSlots();
+
+    if (!blockNames.A && !blockNames.B && !scheduleStartDate) {
+        openBlockModal();
+    }
 }
 
 //save data
@@ -200,6 +243,7 @@ function loadFromFallback() {
 function renderTodos() {
     ['academic', 'lifestyle'].forEach(cat => {
         const list = document.getElementById(`${cat}List`);
+        if (!list) return;
         list.innerHTML = '';
 
         todos[cat].forEach((todo, i) => {
@@ -209,13 +253,28 @@ function renderTodos() {
             li.dataset.category = cat;
             li.dataset.index = i;
 
-            li.innerHTML = `
-                <div class="todo-item-content">
-                    <div class="todo-item-title">${todo.text}</div>
-                    <div class="todo-item-duration">${todo.duration} min</div>
-                </div>
-                <button class="delete-btn" onclick="deleteTodo('${cat}', ${i})">x</button>
-            `;
+            const content = document.createElement('div');
+            content.className = 'todo-item-content';
+
+            const title = document.createElement('div');
+            title.className = 'todo-item-title';
+            title.textContent = todo.text;
+
+            const dur = document.createElement('div');
+            dur.className = 'todo-item-duration';
+            dur.textContent `${todo.duration} min`;
+            
+            content.appendChild(title);
+            content.appendChild(dur);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = 'x';
+            deleteBtn.dataset.category = cat;
+            deleteBtn.dataset.index = i;
+
+            li.appendChild(content);
+            li.appendChild(deleteBtn);
 
             li.addEventListener('dragstart', handleDragStart);
             li.addEventListener('dragend', handleDragEnd);
@@ -227,28 +286,65 @@ function renderTodos() {
 
 //render schedule
 function renderSchedule() {
-    //clear existing scheduled tasks
-    document.querySelectorAll('.scheduled-task:not(.class-block').forEach(el => el.remove());
+    const container = document.getElementById('timeBlocks');
+    if (!contaier) return;
 
-    //make the height of the block correspond to the length of the task
+    //clear existing scheduled tasks
+    document.querySelectorAll('.scheduled-task[data0scheduled="true"]').forEach(el => el.remove());
+
+    const hrs = 23 - 6 + 1;
+    container.style.position = 'relative';
+    container.style.height = `${hrs * 60}px`;
+
     schedule.forEach((item, i) => {
         const startHr = item.hour;
-        const duration = item.duration;
-        const durationHrs = duration / 60;
+        const startMin = item.startMin || 0;
+        const minutesFromStart = (startHour - 6) * 60 + startMin;
+        const height = item.duration;
 
-        const slot = document.querySelector(`[data-hour="${item.hour}"] .time-slot-content`);
-        if (slot) {
-            const task = document.createElement('div');
-            task.className = `scheduled-task ${item.category} ${item.completed ? 'completed' : 'incomplete'}`;
-            task.style.height = `${durationHrs * 60}px`;
-            task.innerHTML = `
-                <div class="scheduled-task-title">${item.text}</div>
-                <div class="scheduled-task-time">${item.duration} min</div>
-                <button class="remove-scheduled" onclick="removeScheduled(${i})">x</button>
-                <button class="complete-btn" onclick="completeTask(${i})">√</button>
-            `;
-            slot.appendChild(task);
-        }
+        const task = document.createElement('div');
+        task.className = `scheduled-task ${item.category} ${item.completed ? 'completed' : 'incomplete'}`;
+        task.dataset.scheduled = "true";
+        task.dataset.index = i;
+        task,style.position = 'absolute';
+        task,style.left = '110px';
+        task,style.width = 'calc(100% - 120px';
+        task,style.top = `${minutesFromStart}px`;
+        task,style.height = `${height}`;
+        task,style.boxSizing = 'border-box';
+        task,style.padding = '6px';
+        task,style.borderRadius = '6px' ;
+        task,style.overflow = 'hidden';
+
+        const title = document.createElement('div');
+        title.className = 'scheduled-task-title';
+        title.textContent = item.text;
+
+        const timeInfo = document.createElement('div');
+        timeInfo.className = 'scheduled-task-time';
+        timeInfo.textContent = `${item.duration} min`;
+
+        const controls = document.createElement('div');
+        controls.className = 'scheduled-controls';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove=scheduled';
+        removeBtn.textContent = 'x';
+        removeBtn.dataset.index = i;
+
+        const completeBtn = document.createElement('button');
+        completeBtn.className = 'complete-btn';
+        completeBtn.textContent = '√';
+        completeBtn.dataset.index = i;
+
+        controls.appendChild(removeBtn);
+        controls.appendChild(completeBtn);
+
+        task.appendChild(title);
+        task.appendChild(timeInfo);
+        task.appendChild(controls);
+
+        container.appendChild(task);
     });
 }
 
@@ -262,12 +358,24 @@ function renderCompletedTasks() {
     completedTasks.forEach((task, i) => {
         const li = document.createElement('li');
         li.className = 'completed-item';
-        li.innerHTML = `
-            <div class="completed-content">
-                <div class="completed-title">${task.text}</div>
-            </div>
-            <button class="delete-completed" onclick="removeCompleted(${i})">x</button>
-        `
+
+        const content = document.createElement('div');
+        content.className = 'completed-content';
+
+        const title = document.createElement('div');
+        title.className = 'completed-title';
+        title.textContent = task.takk;
+
+        content.appendChild(title);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-completed';
+        deleteBtn.textContent = 'x';
+        deleteBtn.dataset.index = i;
+
+        li.appenChild(content);
+        li.appendChild(deleteBtn);
+
         container.appendChild(li);
     });
 }
@@ -289,7 +397,7 @@ function completeTask(i) {
 
 
 function removeCompleted(i) {
-    completedTasks.splice(i, 1);
+    completedTasks.splice(Number(i), 1);
     saveTodos();
     renderCompletedTasks();
 }
