@@ -118,7 +118,6 @@ function setScheduleStartDate() {
 
     scheduleStartDate = startDate.toISOString();
     saveTodos();
-
     generateTimeSlots();
 }
 
@@ -570,6 +569,42 @@ function closeBlockModal() {
     if (blockModal) blockModal.classList.remove('active');
 }
 
+// Add new functions for date modal
+function openDateModal() {
+    const dateModal = document.getElementById('dateModal');
+    if (dateModal) {
+        const dateInput = document.getElementById('cycleStartInput');
+        if (dateInput && scheduleStartDate) {
+            const date = new Date(scheduleStartDate);
+            const yr = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            dateInput.value = `${yr}-${month}-${day}`;
+        }
+        dateModal.classList.add('active');
+    }
+}
+
+function closeDateModal() {
+    const dateModal = document.getElementById('dateModal');
+    if (dateModal) dateModal.classList.remove('active');
+}
+
+function saveStartDate() {
+    const input = document.getElementById('cycleStartInput');
+    if (!input || !input.value) {
+        alert("Please select the date that was Day 1");
+        return;
+    }
+    const startDate = new Date(input.value);
+    startDate.setHours(0, 0, 0, 0);
+
+    scheduleStartDate = startDate.toISOString();
+    saveTodos();
+    generateTimeSlots();
+    closeDateModal();
+}
+
 function toggleBlockInput(block) {
     const spare = document.getElementById(`spare${block}`);
     const input = document.getElementById(`block${block}`);
@@ -724,6 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     if (saveBtn) {
         saveBtn.addEventListener('click', () => {
+
             const nameEl = document.getElementById('siteName');
             const urlEl = document.getElementById('siteUrl');
             const letterEl = document.getElementById('iconLetter');
@@ -733,7 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const name = nameEl ? nameEl.value.trim() : '';
             const url = urlEl ? urlEl.value.trim() : '';
             const letter = letterEl ? letterEl.value.trim() : '';
-            const color = colorEl ? colorEl.value : '#4a9eff';
+            const color = colorEl ? colorEl.value : '#cc0000';
             const file = uploadEl ? uploadEl.files[0] : null;
 
             if (!name || !url) return;
@@ -756,7 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    //block modal buttons
+    // Block modal buttons
     const cancelBlockBtn = document.getElementById('cancelBlockBtn');
     const saveBlockBtn = document.getElementById('saveBlockBtn');
     if (cancelBlockBtn) cancelBlockBtn.addEventListener('click', closeBlockModal);
@@ -769,12 +805,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (spare) blockIsSpare[block] = spare.checked;
             });
 
-            if (!scheduleStartDate) {
-                const startDate = new Date('2024-11-28');
-                startDate.setHours(0, 0, 0, 0);
-                scheduleStartDate = startDate.toISOString();
-            }
-
             saveTodos();
             updateBlockSchedule();
             generateTimeSlots();
@@ -782,11 +812,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Date modal buttons
+    const cancelDateBtn = document.getElementById('cancelDateBtn');
+    const saveDateBtn = document.getElementById('saveDateBtn');
+    if (cancelDateBtn) cancelDateBtn.addEventListener('click', closeDateModal);
+    if (saveDateBtn) saveDateBtn.addEventListener('click', saveStartDate);
+
+    document.addEventListener("click", (e) => {
+        if (e.target.classList.contains("remove-scheduled")) {
+            removeScheduled(e.target.dataset.index);
+        }
+        if (e,target.classList.contains("complete-btn")) {
+            completeTask(e.target.dataset.index);
+        }
+    });
+
+    document.addEventListener("click", (e) => {
+        if (e.target.classList.contains("delete-completed")) {
+            removeCompleted(e.target.dataset.index);
+        }
+    });
+
     //schedule buttons
     const setScheduleBtn = document.getElementById('setScheduleBtn');
     const editBlocksBtn = document.getElementById('editBlocksBtn');
-    if (setScheduleBtn) setScheduleBtn.addEventListener('click', setScheduleStartDate);
+    if (setScheduleBtn) setScheduleBtn.addEventListener('click', openDateModal);
     if (editBlocksBtn) editBlocksBtn.addEventListener('click', openBlockModal);
+
 
     //todo buttons
     const addTodoBtn = document.getElementById('addTodoBtn');

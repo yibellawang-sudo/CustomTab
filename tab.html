@@ -12,19 +12,6 @@
                 <div class="todo-section">
                     <h2 id="date"></h2>
 
-                    <div class="block-schedule">
-                        <div class="schedule-header">
-                            <h3>See My Classes</h3>
-                            <div>
-                                <input type="date" id="cycleStartInput">
-                                <button id="setScheduleBtn">Set Start Date</button>
-
-                                <button id="editBlocksBtn" class="schedule-btn">Edit Blocks</button>
-                            </div>
-                        </div>
-                        <div id="blockDisplay" class="block-display"></div>
-                    </div>
-
                     <div class="todo-input-group">
                         <input type="text" id="todoInput" placeholder="Add a task...">
                         <select id="categorySelect">
@@ -55,6 +42,10 @@
 
                 <div class="calendar">
                     <h3>Today's Schedule</h3>
+                    <div>
+                        <button id="editBlocksBtn" class="schedule-btn">Edit Classes</button>
+                        <button id="setScheduleBtn" class="schedule-btn">Set Start Date</button>
+                    </div>
                     <div id="timeBlocks" class="time-blocks"></div>
                 </div>
             </div>
@@ -90,10 +81,10 @@
             </a>
         </div>
 
-        <!--Block schedule setup modal-->
+        <!-- Block schedule setup modal -->
         <div id="blockModal" class="modal">
             <div class="modal-content">
-                <h2>Set up your course schedule</h2>
+                <h2>Edit Your Course Schedule</h2>
 
                 <div class="block-inputs">
                     <div class="block-input-row">
@@ -148,6 +139,26 @@
                     <div class="modal-buttons">
                         <button id="cancelBlockBtn">Cancel</button>
                         <button id="saveBlockBtn">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Date modal -->
+        <div id="dateModal" class="modal">
+            <div class="modal-content">
+                <h2>Set Schedule Start Date</h2>
+                <p>Select the date that was Day 1 of your 8-day cycle:</p>
+
+                <div class="block-inputs">
+                    <div class="block-input-row">
+                        <label>Day 1 Date:</label>
+                        <input type="date" id="cycleStartInput">
+                    </div>
+
+                    <div class="modal-buttons">
+                        <button id="cancelDateBtn">Cancel</button>
+                        <button id="saveDateBtn">Save</button>
                     </div>
                 </div>
             </div>
