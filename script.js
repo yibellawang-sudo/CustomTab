@@ -108,11 +108,17 @@ function updateDate() {
 }
 
 function setScheduleStartDate() {
-    const startDate = new Date('2025-12-1');
+    const input = document.getElementById('cycleStartInput');
+    if (!input || !input.value) {
+        alert("Please select the date that was Day 1");
+        return;
+    }
+    const startDate = new Date(input.value);
     startDate.setHours(0, 0, 0, 0);
+
     scheduleStartDate = startDate.toISOString();
     saveTodos();
-    updateBlockSchedule();
+
     generateTimeSlots();
 }
 
@@ -198,8 +204,6 @@ function generateTimeSlots() {
         content.addEventListener('dragover', handleDragOver);
         content.addEventListener('drop', handleDrop);
 
-        pendingClasses.forEach(c => container.appendChild(c));
-
         if (todayBlocks.length > 0) {
             classPeriods.forEach((period, idx) => {
                 const block = todayBlocks[idx];
@@ -217,7 +221,6 @@ function generateTimeSlots() {
                 classDiv.style.left = '110px';
                 classDiv.style.top = `${minutesFrom6}px`;
                 classDiv.style.height = `${height}px`;
-                //classDiv.style.width = `clac(100% - 120px)`;
 
                 classDiv.innerHTML = `
                     <div class="scheduled-task-title">${className}</div>
@@ -228,6 +231,7 @@ function generateTimeSlots() {
         }
         container.appendChild(slot);
     }
+    pendingClasses.forEach(c => container.appendChild(c));
 
     // after creating the grid, render schedule items
     renderSchedule();
