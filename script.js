@@ -108,7 +108,7 @@ function updateDate() {
 }
 
 function setScheduleStartDate() {
-    const startDate = new Date('2024-11-27');
+    const startDate = new Date('2025-12-1');
     startDate.setHours(0, 0, 0, 0);
     scheduleStartDate = startDate.toISOString();
     saveTodos();
@@ -117,6 +117,7 @@ function setScheduleStartDate() {
 }
 
 function generateTimeSlots() {
+    const pendingClasses = [];
     const container = document.getElementById('timeBlocks');
     if (!container) return;
 
@@ -197,32 +198,8 @@ function generateTimeSlots() {
         content.addEventListener('dragover', handleDragOver);
         content.addEventListener('drop', handleDrop);
 
-        //check if current hour contains a class
-        /*
-        if (todayBlocks.length > 0) {
-            classPeriods.forEach((period, idx) => {
-                //show class at the period's start hour
-                if (h === Math.floor(period.start)) {
-                    const block = todayBlocks[idx];
-                    if (!blockIsSpare[block]) {
-                        const className = blockNames[block] || `Block ${block}`;
+        pendingClasses.forEach(c => container.appendChild(c));
 
-                        const classDiv = document.createElement('div');
-                        classDiv.className = 'scheduled-task class-block';
-                        classDiv.style.position = 'absolute';
-                        classDiv.style.left = '110px';
-                        classDiv.style.top = '0';
-                        classDiv.style.height = `${Math.ceil((period.end - period.start) * 60)}px`;
-                        classDiv.style.width = `calc(100% - 120px)`;
-                        classDiv.innerHTML = `
-                            <div class="scheduled-task-title">${className}</div>
-                            <div class="scheduled-task-time">${period.label}</div>
-                        `;
-                        slot.appendChild(classDiv);
-                    }
-                }
-            });
-        }*/
         if (todayBlocks.length > 0) {
             classPeriods.forEach((period, idx) => {
                 const block = todayBlocks[idx];
@@ -240,13 +217,13 @@ function generateTimeSlots() {
                 classDiv.style.left = '110px';
                 classDiv.style.top = `${minutesFrom6}px`;
                 classDiv.style.height = `${height}px`;
-                classDiv.style.width = `clac(100% - 120px)`;
+                //classDiv.style.width = `clac(100% - 120px)`;
 
                 classDiv.innerHTML = `
                     <div class="scheduled-task-title">${className}</div>
                     <div class="scheduled-task-time">${period.label}</div>
                 `;
-                container.appendChild(classDiv);
+                pendingClasses.push(classDiv);
             })
         }
         container.appendChild(slot);
@@ -323,22 +300,16 @@ function renderSchedule() {
         task.className = `scheduled-task ${item.category} ${item.completed ? 'completed' : 'incomplete'}`;
         task.dataset.scheduled = "true";
         task.dataset.index = i;
-        task.style.position = 'absolute';
-        task.style.left = '110px'; 
-        task.style.width = `calc(100% - 120px)`; 
+
         task.style.top = `${minutesFrom6}px`;
         task.style.height = `${height}px`;
-        task.style.boxSizing = 'border-box';
-        task.style.padding = '6px';
-        task.style.borderRadius = '6px';
-        task.style.overflow = 'hidden';
 
         if (item.completed) {
             task.style.background = '#d9d9d9';
             task.style.color = '#222';
         } else {
-            task.style.background = '#ffb3b3';
-            task.style.color = '#111';
+            task.style.background = '#ff5e5eff';
+            task.style.color = '#222';
         }
 
         //build inner content via nodes
@@ -355,12 +326,12 @@ function renderSchedule() {
 
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-scheduled';
-        removeBtn.textContent = 'x';
+        removeBtn.textContent = '✖';
         removeBtn.dataset.index = i;
 
         const completeBtn = document.createElement('button');
         completeBtn.className = 'complete-btn';
-        completeBtn.textContent = '√';
+        completeBtn.textContent = "\u2713";
         completeBtn.dataset.index = i;
 
         controls.appendChild(removeBtn);
