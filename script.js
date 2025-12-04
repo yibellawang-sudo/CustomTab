@@ -308,7 +308,7 @@ function renderSchedule() {
         task.style.height = `${height}px`;
 
         if (item.completed) {
-            task.style.background = '#d9d9d9';
+            task.style.background = '#999';
             task.style.color = '#222';
         } else {
             task.style.background = '#ff5e5eff';
