@@ -13,6 +13,7 @@ let blockIsSpare = {
 };
 
 let completedTasks = [];
+let currentViewDate = new Date(); 
 
 const blockRotation = [
     ['A', 'B', 'C', 'D'],
@@ -92,6 +93,7 @@ function postLoadInit() {
     renderTodos();
     renderShortcuts();
     renderCompletedTasks();
+    updateScheduleHeader();
     generateTimeSlots();
 
     if (!blockNames.A && !blockNames.B && !scheduleStartDate) {
@@ -104,6 +106,69 @@ function updateDate() {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const el = document.getElementById('date');
     if (el) el.textContent = now.toLocaleDateString('en-US', options);
+}
+
+function updateScheduleHeader() {
+    const header = document.getElementById('scheduleDate');
+    if (!header) return;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const viewDate = new Date(currentViewDate);
+    viewDate.setHours(0, 0, 0, 0);
+    
+    const options = { weekday: 'long', month: 'short', day: 'numeric' };
+    let dateText = currentViewDate.toLocaleDateString('en-US', options);
+    
+    if (viewDate.getTime() === today.getTime()) {
+        dateText = "Today's Schedule";
+    } else {
+        dateText += "'s Schedule";
+    }
+    
+    header.textContent = dateText;
+    
+    //update arrow button states
+    const leftArrow = document.getElementById('prevDay');
+    const rightArrow = document.getElementById('nextDay');
+    
+    //calculate 7 days later
+    const sevenDaysLater = new Date(today);
+    sevenDaysLater.setDate(today.getDate() - 7);
+    
+    //disable right arrow if we're at 7 days later
+    if (rightArrow) {
+        rightArrow.disabled = viewDate.getTime() <= sevenDaysLater.getTime();
+        rightArrow.style.opacity = rightArrow.disabled ? '0.3' : '1';
+        rightArrow.style.cursor = rightArrow.disabled ? 'not-allowed' : 'pointer';
+    }
+    
+    //disable left arrow if we're at today
+    if (leftArrow) {
+        leftArrow.disabled = viewDate.getTime() <= today.getTime();
+        leftArrow.style.opacity = leftArrow.disabled ? '0.3' : '1';
+        leftArrow.style.cursor = leftArrow.disabled ? 'not-allowed' : 'pointer';
+    }
+}
+
+function navigateDay(direction) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const sevenDaysLater = new Date(today);
+    sevenDaysLater.setDate(today.getDate() + 7);
+    
+    const newDate = new Date(currentViewDate);
+    newDate.setDate(newDate.getDate() + direction);
+    newDate.setHours(0, 0, 0, 0);
+    
+    //don't allow navigation beyond limits
+    if (newDate.getTime() > sevenDaysLater.getTime() || newDate.getTime() < today.getTime()) {
+        return;
+    }
+    
+    currentViewDate = newDate;
+    updateScheduleHeader();
     generateTimeSlots();
 }
 
@@ -137,18 +202,18 @@ function generateTimeSlots() {
     let todayBlocks = [];
     if (scheduleStartDate) {
         const startDate = new Date(scheduleStartDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const viewDate = new Date(currentViewDate);
+        viewDate.setHours(0, 0, 0, 0);
         startDate.setHours(0, 0, 0, 0);
 
-        const dayOfWeek = today.getDay();
+        const dayOfWeek = viewDate.getDay();
 
         //no classes on weekends
         if (dayOfWeek !== 0 && dayOfWeek !== 6) {
             let weekdayCount = 0;
             let currentDate = new Date(startDate);
 
-            while (currentDate < today) {
+            while (currentDate < viewDate) {
                 const day = currentDate.getDay();
                 if (day !== 0 && day !== 6) {
                     weekdayCount++;
@@ -161,7 +226,7 @@ function generateTimeSlots() {
         }
     }
 
-    //create hour rows (as visual grid background). Each row is 60px tall.
+    //create hour rows. Each row is 60px tall.
     for (let h = 6; h <= 23; h++) {
         const slot = document.createElement('div');
         slot.className = 'time-slot';
@@ -200,8 +265,16 @@ function generateTimeSlots() {
         content.style.overflow = 'visible'; 
         slot.appendChild(content);
 
-        content.addEventListener('dragover', handleDragOver);
-        content.addEventListener('drop', handleDrop);
+        //only allow dropping on today's schedule
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const viewDate = new Date(currentViewDate);
+        viewDate.setHours(0, 0, 0, 0);
+        
+        if (viewDate.getTime() === today.getTime()) {
+            content.addEventListener('dragover', handleDragOver);
+            content.addEventListener('drop', handleDrop);
+        }
 
         if (todayBlocks.length > 0) {
             classPeriods.forEach((period, idx) => {
@@ -232,7 +305,7 @@ function generateTimeSlots() {
     }
     pendingClasses.forEach(c => container.appendChild(c));
 
-    // after creating the grid, render schedule items
+    //after creating the grid, render schedule items
     renderSchedule();
 }
 
@@ -569,7 +642,7 @@ function closeBlockModal() {
     if (blockModal) blockModal.classList.remove('active');
 }
 
-// Add new functions for date modal
+//add new functions for date modal
 function openDateModal() {
     const dateModal = document.getElementById('dateModal');
     if (dateModal) {
@@ -759,7 +832,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     if (saveBtn) {
         saveBtn.addEventListener('click', () => {
-
             const nameEl = document.getElementById('siteName');
             const urlEl = document.getElementById('siteUrl');
             const letterEl = document.getElementById('iconLetter');
@@ -792,7 +864,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Block modal buttons
+    //block modal buttons
     const cancelBlockBtn = document.getElementById('cancelBlockBtn');
     const saveBlockBtn = document.getElementById('saveBlockBtn');
     if (cancelBlockBtn) cancelBlockBtn.addEventListener('click', closeBlockModal);
@@ -812,33 +884,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Date modal buttons
+    //date modal buttons
     const cancelDateBtn = document.getElementById('cancelDateBtn');
     const saveDateBtn = document.getElementById('saveDateBtn');
     if (cancelDateBtn) cancelDateBtn.addEventListener('click', closeDateModal);
     if (saveDateBtn) saveDateBtn.addEventListener('click', saveStartDate);
 
-    document.addEventListener("click", (e) => {
-        if (e.target.classList.contains("remove-scheduled")) {
-            removeScheduled(e.target.dataset.index);
-        }
-        if (e,target.classList.contains("complete-btn")) {
-            completeTask(e.target.dataset.index);
-        }
-    });
-
-    document.addEventListener("click", (e) => {
-        if (e.target.classList.contains("delete-completed")) {
-            removeCompleted(e.target.dataset.index);
-        }
-    });
-
-    //schedule buttons
     const setScheduleBtn = document.getElementById('setScheduleBtn');
     const editBlocksBtn = document.getElementById('editBlocksBtn');
     if (setScheduleBtn) setScheduleBtn.addEventListener('click', openDateModal);
     if (editBlocksBtn) editBlocksBtn.addEventListener('click', openBlockModal);
 
+    //navigation arrows
+    const prevDayBtn = document.getElementById('prevDay');
+    const nextDayBtn = document.getElementById('nextDay');
+    if (prevDayBtn) prevDayBtn.addEventListener('click', () => navigateDay(-1));
+    if (nextDayBtn) nextDayBtn.addEventListener('click', () => navigateDay(1));
 
     //todo buttons
     const addTodoBtn = document.getElementById('addTodoBtn');
@@ -858,7 +919,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // initial load of stored data
+    //initial load of stored data
     loadData();
 });
 
