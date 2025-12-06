@@ -89,6 +89,41 @@ function loadData() {
     }
 }
 
+function applyCustomColors() {
+    document.documentElement.style.getPropertyPriority('--primary', customColors.primary);
+    document.documentElement.style.getPropertyPriority('--primary-hover', lightenColor(customColors.primary, 20));
+    document.documentElement.style.getPropertyPriority('--primary-dark', darkenColor(customColors.primary, 10));
+}
+
+function lightenColor(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55*percent);
+    const R = Math.min(255, ((num >> 16) & 0xFF) + amt);
+    const G = Math.min(255, ((num >> 8) & 0xFF) + amt);
+    const B = Math.min(255, (num  & 0xFF) + amt);
+
+    return '#' + ((R << 16) | (G << 8) | B).toString(16).padStart(6, '0');
+}
+
+function darkenColor(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55*percent);
+    const R = Math.max(255, ((num >> 16) & 0xFF) - amt);
+    const G = Math.max(255, ((num >> 8) & 0xFF) - amt);
+    const B = Math.max(255, (num  & 0xFF) - amt);
+
+    return '#' + ((R << 16) | (G << 8) | B).toString(16).padStart(6, '0');
+}
+
+function renderALL() {
+    updateDate();
+    renderShortcuts();
+    renderTodos();
+    renderCompletedTasks();
+    updateScheduleHeader();
+    generateTimeSlots();
+}
+
 function postLoadInit() {
     renderTodos();
     renderShortcuts();
@@ -583,6 +618,7 @@ function deleteShortcut(i) {
     renderShortcuts();
 }
 
+//modal functions
 function openModal() {
     const modal = document.getElementById('modal');
     if (modal) {
@@ -642,7 +678,7 @@ function closeBlockModal() {
     if (blockModal) blockModal.classList.remove('active');
 }
 
-//add new functions for date modal
+//date modal
 function openDateModal() {
     const dateModal = document.getElementById('dateModal');
     if (dateModal) {
@@ -708,6 +744,72 @@ function updateBlockSchedule() {
         row.appendChild(box);
     });
     container.appendChild(row);
+}
+
+//customize modal
+function openCustomizeModal() {
+    document.getElementById('primaryColor').value = customColor.primary;
+    document.getElementById('primaryPreview').style.backgroundColor = customColors.primary;
+
+    const list = document.getElementById('shortcutList');
+    list.innerHTML = '';
+    shortcuts.forEach((s, i) => {
+        const item = document.createElement('div');
+        item.className = 'shortcut-item';
+        item.innerHTML = `
+            <div class="shortcut-item-icon" style="background ${s.color}">${s.letter}</div>
+            <div class="shortcut-item-info">
+                <div class="shortcut-item-name">${s.name}</div>
+                <div class="shortcut-item-url">${s.url}</div>
+            </div>
+            <button class="delete-btn" onclick="deleteShortcutFromCustomize(${i})">x</button>
+        `;
+        list.appendChild(item);
+    });
+    document.getElementById('customizeModal').classList.add('active');
+}
+function closeCustomizeModal() {
+    document.getElementById('customizeModal').classList.remove('active');
+}
+function saveCustomization() {
+    customColors.primary = document.getElementById('primaryColor').value;
+    saveData();
+    applyCustomColors();
+    renderShortcuts();
+    closeCustomizeModal();
+}
+
+function openShortcutModal() {
+    document.getElementById('shortcutName').value = '';
+    document.getElementById('shortcutURL').value = '';
+    document.getElementById('shortcutLetter').value = '';
+    document.getElementById('shortcutColor').value = '#666';
+    document.getElementById('shortcutModal').classList.add('active');
+}
+
+function closeShortcutModal() {
+    document.getElementById('shortcutModal').classList.remove('active');
+}
+function saveShortcut() {
+    const name = document.getElementById('shortcutName').value.trim();
+    const url = document.getElementById('shortcutURL').value.trim();
+    const letter = document.getElementById('shortcutLetter').value.trim();
+    const color = document.getElementById('shortcutColor').value.trim();
+
+    if (name && url) {
+        shortcuts.push({ name, url, letter: letter.toUpperCase(), color });
+        saveData();
+        renderShortcuts();
+        closeShortcutModal();
+        if (document.getElementById('customizeModal').classList.contains('active')) {
+            openCustomizeModal();
+        }
+    }
+}
+function deleteShortcutFromCustomize(i) {
+    shortcuts.splice(i, 1);
+    saveData();
+    openCustomizeModal();
 }
 
 let draggedItem = null;
@@ -919,6 +1021,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.getElementById('primaryColor').addEventListener('input', (e) => {
+        document.getElementById.apply('primaryPreview').style.backgroundColor = e.target.value;
+    })
     //initial load of stored data
     loadData();
 });
