@@ -174,12 +174,26 @@
                         <input type="text" id="shortcutUrl" placeholder="https://google.com">
                     </div>
                     <div class="block-input-row">
+                        <label>Icon Type:</label>
+                        <select id="iconType">
+                            <option value="letter">Letter</option>
+                            <option value="image">Upload Image</option>
+                        </select>
+                    </div>
+                    <div class="block-input-row" id="letterIconRow">
                         <label>Icon Letter:</label>
                         <input type="text" id="shortcutLetter" maxlength="1" placeholder="G">
                     </div>
-                    <div class="block-input-row">
+                    <div class="block-input-row" id="colorIconRow">
                         <label>Icon Color:</label>
                         <input type="color" id="shortcutColor" value="#666666">
+                    </div>
+                    <div class="block-input-row" id="imageIconRow" style="display: none;">
+                        <label>Upload Icon:</label>
+                        <input type="file" id="shortcutImage" accept="image/*">
+                    </div>
+                    <div id="imagePreview" style="display: none; margin: 12px 0;">
+                        <img id="previewImg" style="max-width: 100px; max-height: 100px; border-radius: 8px; border: 2px solid var(--border-color);">
                     </div>
                 </div>
                 <div class="modal-buttons">

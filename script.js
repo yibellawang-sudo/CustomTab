@@ -579,8 +579,10 @@ function renderShortcuts() {
         icon.className = 'shortcut-icon';
 
         if (shortcut.image) {
+            icon.classList.add('has-image');
             const img = document.createElement('img');
             img.src = shortcut.image;
+            img.alt = shortcut.name;
             icon.appendChild(img);
         } else {
             icon.style.backgroundColor = shortcut.color || '#666';
@@ -594,6 +596,12 @@ function renderShortcuts() {
         deleteBtn.className = 'delete-shortcut';
         deleteBtn.textContent = 'x';
         deleteBtn.dataset.index = i;
+        deleteBtn.onlick = (e) => {
+            e.preventDefault();
+            shortcuts.splice(i, 1);
+            saveData();
+            renderShortcuts();
+        }
 
         a.appendChild(icon);
         a.appendChild(name);
@@ -784,19 +792,63 @@ function openShortcutModal() {
     document.getElementById('shortcutURL').value = '';
     document.getElementById('shortcutLetter').value = '';
     document.getElementById('shortcutColor').value = '#666';
+    document.getElementById('shortcutImage').value = '';
+    document.getElementById('iconType').value = 'letter';
+    document.getElementById('imagePreview').style.display = 'none';
+    toggleIconType();
     document.getElementById('shortcutModal').classList.add('active');
 }
 
+function toggleIconType() {
+    const iconType = document.getElementById('iconType').value;
+    const letterRow = document.getElementById('letterIconRow');
+    const colorRow = document.getElementById('colorIconRow');
+    const imageRow = document.getElementById('imageIconRow');
+
+    if (iconType === 'image') {
+        letterRow.style.display = 'none';
+        colorRow.style.display = 'none';
+        imageRow.style.display = 'flex';
+    } else {
+        letterRow.style.display = 'flex';
+        colorRow.style.display = 'flex';
+        imageRow.style.display = 'none';
+    }
+}
 function closeShortcutModal() {
     document.getElementById('shortcutModal').classList.remove('active');
 }
 function saveShortcut() {
     const name = document.getElementById('shortcutName').value.trim();
     const url = document.getElementById('shortcutURL').value.trim();
-    const letter = document.getElementById('shortcutLetter').value.trim();
-    const color = document.getElementById('shortcutColor').value.trim();
+    const iconType = document.getElementById('iconType').value;
 
-    if (name && url) {
+    if (!name || !url) {
+        alert('Please enter both name and URL');
+        return;
+    }
+
+    if (iconType === 'image') {
+        const imageFile = document.getElementById('shortcutImage').files[0];
+        if (!imageFile) {
+            alert('Please select an image');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            shortcuts.push({ name, url, image: e.target.result });
+            saveData();
+            renderShortcuts();
+            closeShortcutModal();
+            if (document.getElementById('customizeModal').classList.contains('active')) {
+                openCustomizeModal();
+            }
+        };
+        reader.readAsDataURL(imageFile);
+    } else {
+        const letter = document.getElementById('shortcutLetter').value.trim() || name[0] || 'X';
+        const color = document.getElementById('shortcutColor').value || '#666';
+
         shortcuts.push({ name, url, letter: letter.toUpperCase(), color });
         saveData();
         renderShortcuts();
