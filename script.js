@@ -1,19 +1,12 @@
-let todos = { academic: [], lifestyle: [] };
+let dailyData = {};
 let shortcuts = [];
-let schedule = [];
 let scheduleStartDate = null;
-let blockNames = {
-    A: '', B: '', C: '', D: '',
-    E: '', F: '', G: '', H: ''
-};
-
-let blockIsSpare = {
-    A: false, B: false, C: false, D: false,
-    E: false, F: false, G: false, H: false
-};
-
-let completedTasks = [];
-let currentViewDate = new Date(); 
+let blockNames = { A: '', B: '', C: '', D: '', E: '', F: '', G: '', H: '' };
+let blockIsSpare = { A: false, B: false, C: false, D: false, E: false, F: false, G: false, H: false };
+let currentViewDate = new Date();
+let customColors = { primary: '#cc0000' };
+let draggedItem = null;
+let taskTemplates = [];
 
 const blockRotation = [
     ['A', 'B', 'C', 'D'],
@@ -33,89 +26,92 @@ const classPeriods = [
     { period: 4, start: 14.417, end: 15.75, label: '2:25-3:45' }
 ];
 
-function saveTodos() {
-    try {
-        chrome.storage.local.set({ todos, schedule, shortcuts, scheduleStartDate, blockNames, blockIsSpare, completedTasks });
-    } catch (e) {
-        //fallback for non-extension environments (helps local testing)
-        try {
-            localStorage.setItem('todos', JSON.stringify(todos));
-            localStorage.setItem('schedule', JSON.stringify(schedule));
-            localStorage.setItem('shortcuts', JSON.stringify(shortcuts));
-            localStorage.setItem('scheduleStartDate', scheduleStartDate);
-            localStorage.setItem('blockNames', JSON.stringify(blockNames));
-            localStorage.setItem('blockIsSpare', JSON.stringify(blockIsSpare));
-            localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
-        } catch (err) { /* ignore */ }
-    }
+function getDateKey(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().split('T')[0];
 }
 
-function loadFromFallback() {
-    try {
-        const t = localStorage.getItem('todos');
-        if (t) todos = JSON.parse(t);
-        const s = localStorage.getItem('schedule');
-        if (s) schedule = JSON.parse(s);
-        const sc = localStorage.getItem('shortcuts');
-        if (sc) shortcuts = JSON.parse(sc);
-        const sd = localStorage.getItem('scheduleStartDate');
-        if (sd) scheduleStartDate = sd;
-        const bn = localStorage.getItem('blockNames');
-        if (bn) blockNames = JSON.parse(bn);
-        const bis = localStorage.getItem('blockIsSpare');
-        if (bis) blockIsSpare = JSON.parse(bis);
-        const ct = localStorage.getItem('completedTasks');
-        if (ct) completedTasks = JSON.parse(ct);
-    } catch (e) { /* ignore */ }
+function getCurrentDayData() {
+    const key = getDateKey(currentViewDate);
+    if (!dailyData[key]) {
+        dailyData[key] = {
+            todos: { academic: [], lifestyle: [] },
+            schedule: [],
+            completedTasks: []
+        };
+    }
+    return dailyData[key];
+}
+
+function saveData() {
+    const data = {
+        dailyData,
+        shortcuts,
+        scheduleStartDate,
+        blockNames,
+        blockIsSpare,
+        customColors,
+        taskTemplates
+    };
+    localStorage.setItem('plannerData', JSON.stringify(data));
 }
 
 function loadData() {
-    //try chrome.storage first; fallback to localStorage
     try {
-        chrome.storage.local.get(['todos', 'schedule', 'shortcuts', 'scheduleStartDate', 'blockNames', 'blockIsSpare', 'completedTasks'], (result) => {
-            todos = result.todos || { academic: [], lifestyle: [] };
-            schedule = result.schedule || [];
-            shortcuts = result.shortcuts || [];
-            scheduleStartDate = result.scheduleStartDate || null;
-            blockNames = result.blockNames || { A: '', B: '', C: '', D: '', E: '', F: '', G: '', H: '' };
-            blockIsSpare = result.blockIsSpare || { A: false, B: false, C: false, D: false, E: false, F: false, G: false, H: false };
-            completedTasks = result.completedTasks || [];
-            postLoadInit();
-        });
+        const stored = localStorage.getItem('plannerData');
+        if (stored) {
+            const data = JSON.parse(stored);
+            dailyData = data.dailyData || {};
+            shortcuts = data.shortcuts || [];
+            scheduleStartDate = data.scheduleStartDate;
+            blockNames = data.blockNames || { A: '', B: '', C: '', D: '', E: '', F: '', G: '', H: '' };
+            blockIsSpare = data.blockIsSpare || { A: false, B: false, C: false, D: false, E: false, F: false, G: false, H: false };
+            customColors = data.customColors || { primary: '#cc0000' };
+            taskTemplates = data.taskTemplates || [];
+        }
     } catch (e) {
-        //not in extension env; use localStorage fallback
-        loadFromFallback();
-        postLoadInit();
+        console.error('Error loading data:', e);
+    }
+    applyCustomColors();
+    renderAll();
+    
+    //auto-open setup modal if first time
+    const today = getDateKey(new Date());
+    if (!scheduleStartDate && (!dailyData[today] || Object.keys(dailyData).length === 0)) {
+        setTimeout(() => {
+            if (confirm('Welcome! Would you like to set up your class schedule now?')) {
+                openBlockModal();
+            }
+        }, 500);
     }
 }
 
 function applyCustomColors() {
-    document.documentElement.style.getPropertyPriority('--primary', customColors.primary);
-    document.documentElement.style.getPropertyPriority('--primary-hover', lightenColor(customColors.primary, 20));
-    document.documentElement.style.getPropertyPriority('--primary-dark', darkenColor(customColors.primary, 10));
+    document.documentElement.style.setProperty('--primary', customColors.primary);
+    document.documentElement.style.setProperty('--primary-hover', lightenColor(customColors.primary, 20));
+    document.documentElement.style.setProperty('--primary-dark', darkenColor(customColors.primary, 10));
 }
 
 function lightenColor(color, percent) {
     const num = parseInt(color.replace('#', ''), 16);
-    const amt = Math.round(2.55*percent);
+    const amt = Math.round(2.55 * percent);
     const R = Math.min(255, ((num >> 16) & 0xFF) + amt);
     const G = Math.min(255, ((num >> 8) & 0xFF) + amt);
-    const B = Math.min(255, (num  & 0xFF) + amt);
-
+    const B = Math.min(255, (num & 0xFF) + amt);
     return '#' + ((R << 16) | (G << 8) | B).toString(16).padStart(6, '0');
 }
 
 function darkenColor(color, percent) {
     const num = parseInt(color.replace('#', ''), 16);
-    const amt = Math.round(2.55*percent);
-    const R = Math.max(255, ((num >> 16) & 0xFF) - amt);
-    const G = Math.max(255, ((num >> 8) & 0xFF) - amt);
-    const B = Math.max(255, (num  & 0xFF) - amt);
-
+    const amt = Math.round(2.55 * percent);
+    const R = Math.max(0, ((num >> 16) & 0xFF) - amt);
+    const G = Math.max(0, ((num >> 8) & 0xFF) - amt);
+    const B = Math.max(0, (num & 0xFF) - amt);
     return '#' + ((R << 16) | (G << 8) | B).toString(16).padStart(6, '0');
 }
 
-function renderALL() {
+function renderAll() {
     updateDate();
     renderShortcuts();
     renderTodos();
@@ -124,29 +120,13 @@ function renderALL() {
     generateTimeSlots();
 }
 
-function postLoadInit() {
-    renderTodos();
-    renderShortcuts();
-    renderCompletedTasks();
-    updateScheduleHeader();
-    generateTimeSlots();
-
-    if (!blockNames.A && !blockNames.B && !scheduleStartDate) {
-        openBlockModal();
-    }
-}
-
 function updateDate() {
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const el = document.getElementById('date');
-    if (el) el.textContent = now.toLocaleDateString('en-US', options);
+    document.getElementById('date').textContent = now.toLocaleDateString('en-US', options);
 }
 
 function updateScheduleHeader() {
-    const header = document.getElementById('scheduleDate');
-    if (!header) return;
-    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const viewDate = new Date(currentViewDate);
@@ -161,78 +141,31 @@ function updateScheduleHeader() {
         dateText += "'s Schedule";
     }
     
-    header.textContent = dateText;
-    
-    //update arrow button states
-    const leftArrow = document.getElementById('prevDay');
-    const rightArrow = document.getElementById('nextDay');
-    
-    //calculate 7 days later
-    const sevenDaysLater = new Date(today);
-    sevenDaysLater.setDate(today.getDate() - 7);
-    
-    //disable right arrow if we're at 7 days later
-    if (rightArrow) {
-        rightArrow.disabled = viewDate.getTime() <= sevenDaysLater.getTime();
-        rightArrow.style.opacity = rightArrow.disabled ? '0.3' : '1';
-        rightArrow.style.cursor = rightArrow.disabled ? 'not-allowed' : 'pointer';
-    }
-    
-    //disable left arrow if we're at today
-    if (leftArrow) {
-        leftArrow.disabled = viewDate.getTime() <= today.getTime();
-        leftArrow.style.opacity = leftArrow.disabled ? '0.3' : '1';
-        leftArrow.style.cursor = leftArrow.disabled ? 'not-allowed' : 'pointer';
-    }
-}
-
-function navigateDay(direction) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    document.getElementById('scheduleDate').textContent = dateText;
     
     const sevenDaysLater = new Date(today);
     sevenDaysLater.setDate(today.getDate() + 7);
     
-    const newDate = new Date(currentViewDate);
-    newDate.setDate(newDate.getDate() + direction);
-    newDate.setHours(0, 0, 0, 0);
+    const prevBtn = document.getElementById('prevDay');
+    const nextBtn = document.getElementById('nextDay');
     
-    //don't allow navigation beyond limits
-    if (newDate.getTime() > sevenDaysLater.getTime() || newDate.getTime() < today.getTime()) {
-        return;
-    }
-    
-    currentViewDate = newDate;
-    updateScheduleHeader();
-    generateTimeSlots();
+    nextBtn.disabled = viewDate.getTime() >= sevenDaysLater.getTime();
+    prevBtn.disabled = viewDate.getTime() <= today.getTime();
 }
 
-function setScheduleStartDate() {
-    const input = document.getElementById('cycleStartInput');
-    if (!input || !input.value) {
-        alert("Please select the date that was Day 1");
-        return;
-    }
-    const startDate = new Date(input.value);
-    startDate.setHours(0, 0, 0, 0);
-
-    scheduleStartDate = startDate.toISOString();
-    saveTodos();
-    generateTimeSlots();
+function navigateDay(direction) {
+    const newDate = new Date(currentViewDate);
+    newDate.setDate(newDate.getDate() + direction);
+    currentViewDate = newDate;
+    renderAll();
 }
 
 function generateTimeSlots() {
-    const pendingClasses = [];
     const container = document.getElementById('timeBlocks');
-    if (!container) return;
-
-    //ensure consistent sizing for absolute positioning strategy
-    const hours = 23 - 6 + 1; 
+    const hours = 23 - 6 + 1;
     container.style.position = 'relative';
     container.style.height = `${hours * 60}px`;
-    container.style.boxSizing = 'border-box';
-
-    container.innerHTML = ''; //clear
+    container.innerHTML = '';
 
     let todayBlocks = [];
     if (scheduleStartDate) {
@@ -242,330 +175,194 @@ function generateTimeSlots() {
         startDate.setHours(0, 0, 0, 0);
 
         const dayOfWeek = viewDate.getDay();
-
-        //no classes on weekends
         if (dayOfWeek !== 0 && dayOfWeek !== 6) {
             let weekdayCount = 0;
             let currentDate = new Date(startDate);
-
             while (currentDate < viewDate) {
                 const day = currentDate.getDay();
-                if (day !== 0 && day !== 6) {
-                    weekdayCount++;
-                }
+                if (day !== 0 && day !== 6) weekdayCount++;
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-
             const cycleDay = weekdayCount % 8;
             todayBlocks = blockRotation[cycleDay];
         }
     }
 
-    //create hour rows. Each row is 60px tall.
     for (let h = 6; h <= 23; h++) {
         const slot = document.createElement('div');
         slot.className = 'time-slot';
         slot.dataset.hour = h;
         slot.style.position = 'absolute';
-        slot.style.left = '0';
-
         slot.style.top = `${(h - 6) * 60}px`;
         slot.style.height = '60px';
         slot.style.width = '100%';
-        slot.style.boxSizing = 'border-box';
         slot.style.borderBottom = '1px solid rgba(0,0,0,0.06)';
 
         const time = h % 12 === 0 ? 12 : h % 12;
         const ampm = h < 12 ? 'AM' : 'PM';
 
-        //time label 
         const timeLabel = document.createElement('div');
         timeLabel.className = 'time-label';
         timeLabel.style.position = 'absolute';
         timeLabel.style.left = '8px';
         timeLabel.style.top = '12px';
-        timeLabel.style.width = '90px';
         timeLabel.textContent = `${time}:00 ${ampm}`;
-
         slot.appendChild(timeLabel);
 
-        //placeholder for class blocks
         const content = document.createElement('div');
         content.className = 'time-slot-content';
-        content.style.position = 'absolute';
-        content.style.left = '110px';
-        content.style.right = '8px';
-        content.style.top = '0';
-        content.style.height = '60px';
-        content.style.overflow = 'visible'; 
+        content.addEventListener('dragover', handleDragOver);
+        content.addEventListener('drop', handleDrop);
         slot.appendChild(content);
 
-        //only allow dropping on today's schedule
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const viewDate = new Date(currentViewDate);
-        viewDate.setHours(0, 0, 0, 0);
-        
-        if (viewDate.getTime() === today.getTime()) {
-            content.addEventListener('dragover', handleDragOver);
-            content.addEventListener('drop', handleDrop);
-        }
-
-        if (todayBlocks.length > 0) {
-            classPeriods.forEach((period, idx) => {
-                const block = todayBlocks[idx];
-                if (blockIsSpare[block]) return;
-
-                const className = blockNames[block] || `Block ${block}`;
-
-                const classDiv = document.createElement('div');
-                classDiv.className = 'scheduled-task class-block';
-                classDiv.style.position = 'absolute';
-
-                const minutesFrom6 = (period.start - 6) * 60;
-                const height = (period.end - period.start) * 60;
-
-                classDiv.style.left = '110px';
-                classDiv.style.top = `${minutesFrom6}px`;
-                classDiv.style.height = `${height}px`;
-
-                classDiv.innerHTML = `
-                    <div class="scheduled-task-title">${className}</div>
-                    <div class="scheduled-task-time">${period.label}</div>
-                `;
-                pendingClasses.push(classDiv);
-            })
-        }
         container.appendChild(slot);
     }
-    pendingClasses.forEach(c => container.appendChild(c));
 
-    //after creating the grid, render schedule items
+    if (todayBlocks.length > 0) {
+        classPeriods.forEach((period, idx) => {
+            const block = todayBlocks[idx];
+            if (blockIsSpare[block]) return;
+
+            const className = blockNames[block] || `Block ${block}`;
+            const classDiv = document.createElement('div');
+            classDiv.className = 'scheduled-task class-block';
+            classDiv.style.top = `${(period.start - 6) * 60}px`;
+            classDiv.style.height = `${(period.end - period.start) * 60}px`;
+            classDiv.innerHTML = `
+                <div class="scheduled-task-title">${className}</div>
+                <div class="scheduled-task-time">${period.label}</div>
+            `;
+            container.appendChild(classDiv);
+        });
+    }
+
     renderSchedule();
 }
 
 function renderTodos() {
+    const dayData = getCurrentDayData();
+    const today = getDateKey(new Date());
+    const isToday = getDateKey(currentViewDate) === today;
+    
     ['academic', 'lifestyle'].forEach(cat => {
         const list = document.getElementById(`${cat}List`);
-        if (!list) return;
         list.innerHTML = '';
 
-        todos[cat].forEach((todo, i) => {
+        //sort by priority
+        const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+        const sorted = [...dayData.todos[cat]].sort((a, b) => {
+            return (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
+        });
+
+        sorted.forEach((todo) => {
+            //find original index for delete operations
+            const i = dayData.todos[cat].findIndex(t => 
+                t.text === todo.text && t.duration === todo.duration && t.priority === todo.priority
+            );
+            
             const li = document.createElement('li');
-            li.className = 'todo-item';
-            li.draggable = true;
+            li.className = `todo-item priority-${todo.priority || 'medium'}`;
+            li.draggable = isToday;
             li.dataset.category = cat;
             li.dataset.index = i;
+            
+            //check if this task is a duplicate from yesterday
+            const yesterday = new Date(currentViewDate);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayKey = getDateKey(yesterday);
+            if (dailyData[yesterdayKey]) {
+                const isDuplicate = dailyData[yesterdayKey].todos[cat]?.some(
+                    t => t.text === todo.text && t.duration === todo.duration
+                );
+                if (isDuplicate) li.classList.add('duplicate');
+            }
 
-            //create inner structure without inline handlers
-            const content = document.createElement('div');
-            content.className = 'todo-item-content';
+            const priorityLabels = {
+                low: 'Low',
+                medium: 'Med',
+                high: 'High',
+                urgent: 'Urgent'
+            };
 
-            const title = document.createElement('div');
-            title.className = 'todo-item-title';
-            title.textContent = todo.text;
+            li.innerHTML = `
+                <div class="todo-item-content">
+                    <div class="todo-item-title">
+                        ${todo.text}
+                        <span class="priority-badge ${todo.priority || 'medium'}">${priorityLabels[todo.priority || 'medium']}</span>
+                    </div>
+                    <div class="todo-item-duration">${todo.duration} min</div>
+                </div>
+                <button class="delete-btn" data-category="${cat}" data-index="${i}">×</button>
+            `;
 
-            const dur = document.createElement('div');
-            dur.className = 'todo-item-duration';
-            dur.textContent = `${todo.duration} min`;
-
-            content.appendChild(title);
-            content.appendChild(dur);
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.textContent = 'x';
-            deleteBtn.dataset.category = cat;
-            deleteBtn.dataset.index = i;
-
-            li.appendChild(content);
-            li.appendChild(deleteBtn);
-
-            li.addEventListener('dragstart', handleDragStart);
-            li.addEventListener('dragend', handleDragEnd);
-
+            if (isToday) {
+                li.addEventListener('dragstart', handleDragStart);
+                li.addEventListener('dragend', handleDragEnd);
+            }
             list.appendChild(li);
         });
     });
+    
+    //update autocomplete suggestions
+    updateTaskSuggestions();
 }
 
 function renderSchedule() {
     const container = document.getElementById('timeBlocks');
-    if (!container) return;
-
-    //remove previous scheduled-task elements that were created from schedule (mark them with data-scheduled)
+    const dayData = getCurrentDayData();
+    
     container.querySelectorAll('.scheduled-task[data-scheduled="true"]').forEach(el => el.remove());
 
-    //ensure container has proper height
-    const hours = 23 - 6 + 1;
-    container.style.position = 'relative';
-    container.style.height = `${hours * 60}px`;
-
-    schedule.forEach((item, i) => {
-        const startHour = item.hour;
-        const startMinute = item.startMinute || 0; 
-        const minutesFrom6 = (startHour - 6) * 60 + startMinute;
-        const height = item.duration; 
-
+    dayData.schedule.forEach((item, i) => {
         const task = document.createElement('div');
-        task.className = `scheduled-task ${item.category} ${item.completed ? 'completed' : 'incomplete'}`;
+        task.className = `scheduled-task priority-${item.priority || 'medium'} ${item.completed ? 'completed' : ''}`;
         task.dataset.scheduled = "true";
-        task.dataset.index = i;
+        task.style.top = `${(item.hour - 6) * 60 + (item.startMinute || 0)}px`;
+        task.style.height = `${item.duration}px`;
 
-        task.style.top = `${minutesFrom6}px`;
-        task.style.height = `${height}px`;
+        const priorityLabels = {
+            low: 'Low',
+            medium: 'Med',
+            high: 'High',
+            urgent: 'Urgent'
+        };
 
-        if (item.completed) {
-            task.style.background = '#999';
-            task.style.color = '#222';
-        } else {
-            task.style.background = '#ff5e5eff';
-            task.style.color = '#222';
-        }
-
-        //build inner content via nodes
-        const title = document.createElement('div');
-        title.className = 'scheduled-task-title';
-        title.textContent = item.text;
-
-        const timeInfo = document.createElement('div');
-        timeInfo.className = 'scheduled-task-time';
-        timeInfo.textContent = `${item.duration} min`;
-
-        const controls = document.createElement('div');
-        controls.className = 'scheduled-controls';
-
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'remove-scheduled';
-        removeBtn.textContent = '✖';
-        removeBtn.dataset.index = i;
-
-        const completeBtn = document.createElement('button');
-        completeBtn.className = 'complete-btn';
-        completeBtn.textContent = "\u2713";
-        completeBtn.dataset.index = i;
-
-        controls.appendChild(removeBtn);
-        controls.appendChild(completeBtn);
-
-        task.appendChild(title);
-        task.appendChild(timeInfo);
-        task.appendChild(controls);
+        task.innerHTML = `
+            <div class="scheduled-task-title">
+                ${item.text}
+                <span class="priority-badge ${item.priority || 'medium'}">${priorityLabels[item.priority || 'medium']}</span>
+            </div>
+            <div class="scheduled-task-time">${item.duration} min</div>
+            <div class="scheduled-controls">
+                <button class="complete-btn" data-index="${i}">✓</button>
+                <button class="remove-scheduled" data-index="${i}">✖</button>
+            </div>
+        `;
 
         container.appendChild(task);
     });
 }
 
-
-//complete task functionality
 function renderCompletedTasks() {
+    const dayData = getCurrentDayData();
     const container = document.getElementById('completedList');
-    if (!container) return;
-
     container.innerHTML = '';
 
-    completedTasks.forEach((task, i) => {
+    dayData.completedTasks.forEach((task, i) => {
         const li = document.createElement('li');
         li.className = 'completed-item';
-
-        const content = document.createElement('div');
-        content.className = 'completed-content';
-
-        const title = document.createElement('div');
-        title.className = 'completed-title';
-        title.textContent = task.text;
-
-        content.appendChild(title);
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-completed';
-        deleteBtn.textContent = 'x';
-        deleteBtn.dataset.index = i;
-
-        li.appendChild(content);
-        li.appendChild(deleteBtn);
-
+        li.innerHTML = `
+            <div class="completed-content">
+                <div class="completed-title">${task.text}</div>
+            </div>
+            <button class="delete-completed" data-index="${i}">×</button>
+        `;
         container.appendChild(li);
     });
 }
 
-function completeTask(i) {
-    const idx = Number(i);
-    if (!schedule[idx]) return;
-
-    const task = schedule[idx];
-
-    //mark visually complete
-    task.completed = true;
-
-    //add to completed list for record
-    completedTasks.push({
-        text: task.text,
-        timestamp: new Date().toISOString()
-    });
-
-    saveTodos();
-    renderSchedule();
-    renderCompletedTasks();
-}
-
-//remove completed list item
-function removeCompleted(i) {
-    completedTasks.splice(Number(i), 1);
-    saveTodos();
-    renderCompletedTasks();
-}
-
-//todo functionality
-function addTodo() {
-    const input = document.getElementById('todoInput');
-    if (!input) return;
-    const categoryEl = document.getElementById('categorySelect');
-    const durationEl = document.getElementById('durationInput');
-    const category = categoryEl ? categoryEl.value : 'academic';
-    const duration = durationEl ? (parseInt(durationEl.value) || 30) : 30;
-    const text = input.value.trim();
-
-    if (text) {
-        todos[category].push({ text, duration });
-        saveTodos();
-        renderTodos();
-        input.value = "";
-    }
-}
-
-function deleteTodo(cat, i) {
-    todos[cat].splice(Number(i), 1);
-    saveTodos();
-    renderTodos();
-}
-
-function removeScheduled(i) {
-    const idx = Number(i);
-    if (!schedule[idx]) return;
-    const item = schedule[idx];
-    //add back to list
-    if (!todos[item.category]) {
-        todos[item.category] = [];
-    }
-    todos[item.category].push({ text: item.text, duration: item.duration });
-    schedule.splice(idx, 1);
-    saveTodos();
-    renderTodos();
-    renderSchedule();
-}
-
-function saveShortcuts() {
-    try {
-        chrome.storage.local.set({ shortcuts });
-    } catch (e) {
-        localStorage.setItem('shortcuts', JSON.stringify(shortcuts));
-    }
-}
-
 function renderShortcuts() {
     const container = document.getElementById('shortcuts');
-    if (!container) return;
     container.innerHTML = '';
 
     shortcuts.forEach((shortcut, i) => {
@@ -573,11 +370,10 @@ function renderShortcuts() {
         a.href = shortcut.url;
         a.className = 'shortcut';
         a.target = '_blank';
-        a.rel = 'noopener';
 
         const icon = document.createElement('div');
         icon.className = 'shortcut-icon';
-
+        
         if (shortcut.image) {
             icon.classList.add('has-image');
             const img = document.createElement('img');
@@ -594,14 +390,14 @@ function renderShortcuts() {
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-shortcut';
-        deleteBtn.textContent = 'x';
+        deleteBtn.textContent = '×';
         deleteBtn.dataset.index = i;
-        deleteBtn.onlick = (e) => {
+        deleteBtn.onclick = (e) => {
             e.preventDefault();
             shortcuts.splice(i, 1);
             saveData();
             renderShortcuts();
-        }
+        };
 
         a.appendChild(icon);
         a.appendChild(name);
@@ -611,174 +407,146 @@ function renderShortcuts() {
 
     const addBtn = document.createElement('button');
     addBtn.className = 'shortcut add-shortcut';
-    const plusIcon = document.createElement('div');
-    plusIcon.className = 'shortcut-icon plus';
-    plusIcon.textContent = '+';
-    addBtn.appendChild(plusIcon);
-    addBtn.appendChild(document.createElement('span')).textContent = 'Add Site';
-    addBtn.dataset.action = 'open-shortcut-modal';
+    addBtn.innerHTML = '<div class="shortcut-icon plus">+</div><span>Add Site</span>';
+    addBtn.onclick = () => openShortcutModal();
     container.appendChild(addBtn);
 }
 
-function deleteShortcut(i) {
-    shortcuts.splice(Number(i), 1);
-    saveShortcuts();
-    renderShortcuts();
+function addTodo() {
+    const input = document.getElementById('todoInput');
+    const category = document.getElementById('categorySelect').value;
+    const duration = parseInt(document.getElementById('durationInput').value) || 30;
+    const priority = document.getElementById('prioritySelect').value;
+    const text = input.value.trim();
+
+    if (text) {
+        const dayData = getCurrentDayData();
+        dayData.todos[category].push({ text, duration, priority });
+        
+        //check if this could be a template
+        if (text.length > 3 && !taskTemplates.find(t => t.text.toLowerCase() === text.toLowerCase())) {
+            const existing = taskTemplates.filter(t => 
+                t.category === category && t.duration === duration
+            );
+            if (existing.length < 10) { //limit to 10 templates per category
+                taskTemplates.push({ text, category, duration, priority, uses: 1 });
+            }
+        } else {
+            //increment usage count
+            const template = taskTemplates.find(t => t.text.toLowerCase() === text.toLowerCase());
+            if (template) template.uses++;
+        }
+        
+        saveData();
+        renderTodos();
+        input.value = '';
+        input.focus(); //keep focus for quick entry
+    }
 }
+
+function handleDragStart(e) {
+    const dayData = getCurrentDayData();
+    const cat = this.dataset.category;
+    const idx = parseInt(this.dataset.index);
+    const todo = dayData.todos[cat][idx];
+    draggedItem = {
+        category: cat,
+        index: idx,
+        text: todo.text,
+        duration: todo.duration,
+        priority: todo.priority || 'medium'
+    };
+    this.classList.add('dragging');
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    const parent = this.closest('.time-slot');
+    if (parent) parent.classList.add('drop-zone');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const parent = this.closest('.time-slot');
+    if (parent) parent.classList.remove('drop-zone');
+
+    if (draggedItem && parent) {
+        const hour = parseInt(parent.dataset.hour);
+        const dayData = getCurrentDayData();
+
+        dayData.schedule.push({
+            text: draggedItem.text,
+            duration: draggedItem.duration,
+            priority: draggedItem.priority,
+            category: draggedItem.category,
+            hour,
+            startMinute: 0,
+            completed: false
+        });
+
+        dayData.todos[draggedItem.category].splice(draggedItem.index, 1);
+        saveData();
+        renderTodos();
+        renderSchedule();
+        draggedItem = null;
+    }
+}
+
+//remove drop zone when drag leaves
+document.addEventListener('dragleave', (e) => {
+    if (e.target.classList && e.target.classList.contains('time-slot-content')) {
+        const parent = e.target.closest('.time-slot');
+        if (parent) parent.classList.remove('drop-zone');
+    }
+});
+
+//also remove drop zone when drag ends anywhere
+document.addEventListener('dragend', () => {
+    document.querySelectorAll('.time-slot').forEach(slot => {
+        slot.classList.remove('drop-zone');
+    });
+});
 
 //modal functions
-function openModal() {
-    const modal = document.getElementById('modal');
-    if (modal) {
-        try {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs && tabs[0]) {
-                    const urlEl = document.getElementById('siteUrl');
-                    const nameEl = document.getElementById('siteName');
-                    if (urlEl) urlEl.value = tabs[0].url;
-                    if (nameEl) nameEl.value = tabs[0].title;
-                }
-            });
-        } catch (e) { /* ignore */ }
-
-        modal.classList.add('active');
-    }
-}
-
-function closeModal() {
-    const modal = document.getElementById('modal');
-    if (modal) {
-        modal.classList.remove('active');
-        const nameEl = document.getElementById('siteName');
-        const urlEl = document.getElementById('siteUrl');
-        const letterEl = document.getElementById('iconLetter');
-        const colorEl = document.getElementById('iconColor');
-        const uploadEl = document.getElementById('iconUpload');
-
-        if (nameEl) nameEl.value = '';
-        if (urlEl) urlEl.value = '';
-        if (letterEl) letterEl.value = '';
-        if (colorEl) colorEl.value = '#666';
-        if (uploadEl) uploadEl.value = '';
-    }
-}
-
-function openBlockModal() {
-    const blockModal = document.getElementById('blockModal');
-    if (blockModal) {
-        ['A','B','C','D','E','F','G','H'].forEach(block => {
-            const input = document.getElementById(`block${block}`);
-            if (input) {
-                input.value = blockNames[block] || '';
-            }
-            const spare = document.getElementById(`spare${block}`);
-            if (spare) {
-                spare.checked = blockIsSpare[block] || false;
-                toggleBlockInput(block);
-            }
-        });
-        blockModal.classList.add('active');
-    }
-}
-
-function closeBlockModal() {
-    const blockModal = document.getElementById('blockModal');
-    if (blockModal) blockModal.classList.remove('active');
-}
-
-//date modal
-function openDateModal() {
-    const dateModal = document.getElementById('dateModal');
-    if (dateModal) {
-        const dateInput = document.getElementById('cycleStartInput');
-        if (dateInput && scheduleStartDate) {
-            const date = new Date(scheduleStartDate);
-            const yr = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            dateInput.value = `${yr}-${month}-${day}`;
-        }
-        dateModal.classList.add('active');
-    }
-}
-
-function closeDateModal() {
-    const dateModal = document.getElementById('dateModal');
-    if (dateModal) dateModal.classList.remove('active');
-}
-
-function saveStartDate() {
-    const input = document.getElementById('cycleStartInput');
-    if (!input || !input.value) {
-        alert("Please select the date that was Day 1");
-        return;
-    }
-    const startDate = new Date(input.value);
-    startDate.setHours(0, 0, 0, 0);
-
-    scheduleStartDate = startDate.toISOString();
-    saveTodos();
-    generateTimeSlots();
-    closeDateModal();
-}
-
-function toggleBlockInput(block) {
-    const spare = document.getElementById(`spare${block}`);
-    const input = document.getElementById(`block${block}`);
-    if (spare && input) {
-        input.disabled = spare.checked;
-        if (spare.checked) {
-            input.value = '';
-        }
-        blockIsSpare[block] = spare.checked;
-    }
-}
-
-//create/update a small block display summary
-function updateBlockSchedule() {
-    const container = document.getElementById('blockDisplay');
-    if (!container) return;
-    container.innerHTML = '';
-
-    const row = document.createElement('div');
-    row.className = 'block-row';
-    ['A','B','C','D','E','F','G','H'].forEach(block => {
-        const box = document.createElement('div');
-        box.className = 'block-box';
-        box.textContent = blockNames[block] || block;
-        if (blockIsSpare[block]) {
-            box.style.opacity = '0.5';
-        }
-        row.appendChild(box);
-    });
-    container.appendChild(row);
-}
-
-//customize modal
 function openCustomizeModal() {
-    document.getElementById('primaryColor').value = customColor.primary;
+    document.getElementById('primaryColor').value = customColors.primary;
     document.getElementById('primaryPreview').style.backgroundColor = customColors.primary;
-
+    
     const list = document.getElementById('shortcutList');
     list.innerHTML = '';
     shortcuts.forEach((s, i) => {
         const item = document.createElement('div');
         item.className = 'shortcut-item';
+        
+        let iconHTML = '';
+        if (s.image) {
+            iconHTML = `<div class="shortcut-item-icon"><img src="${s.image}" alt="${s.name}"></div>`;
+        } else {
+            iconHTML = `<div class="shortcut-item-icon" style="background: ${s.color}">${s.letter}</div>`;
+        }
+        
         item.innerHTML = `
-            <div class="shortcut-item-icon" style="background ${s.color}">${s.letter}</div>
+            ${iconHTML}
             <div class="shortcut-item-info">
                 <div class="shortcut-item-name">${s.name}</div>
                 <div class="shortcut-item-url">${s.url}</div>
             </div>
-            <button class="delete-btn" onclick="deleteShortcutFromCustomize(${i})">x</button>
+            <button class="delete-btn" onclick="deleteShortcutFromCustomize(${i})">×</button>
         `;
         list.appendChild(item);
     });
+    
     document.getElementById('customizeModal').classList.add('active');
 }
+
 function closeCustomizeModal() {
     document.getElementById('customizeModal').classList.remove('active');
 }
+
 function saveCustomization() {
     customColors.primary = document.getElementById('primaryColor').value;
     saveData();
@@ -789,9 +557,9 @@ function saveCustomization() {
 
 function openShortcutModal() {
     document.getElementById('shortcutName').value = '';
-    document.getElementById('shortcutURL').value = '';
+    document.getElementById('shortcutUrl').value = '';
     document.getElementById('shortcutLetter').value = '';
-    document.getElementById('shortcutColor').value = '#666';
+    document.getElementById('shortcutColor').value = '#666666';
     document.getElementById('shortcutImage').value = '';
     document.getElementById('iconType').value = 'letter';
     document.getElementById('imagePreview').style.display = 'none';
@@ -804,7 +572,7 @@ function toggleIconType() {
     const letterRow = document.getElementById('letterIconRow');
     const colorRow = document.getElementById('colorIconRow');
     const imageRow = document.getElementById('imageIconRow');
-
+    
     if (iconType === 'image') {
         letterRow.style.display = 'none';
         colorRow.style.display = 'none';
@@ -815,14 +583,16 @@ function toggleIconType() {
         imageRow.style.display = 'none';
     }
 }
+
 function closeShortcutModal() {
     document.getElementById('shortcutModal').classList.remove('active');
 }
+
 function saveShortcut() {
     const name = document.getElementById('shortcutName').value.trim();
-    const url = document.getElementById('shortcutURL').value.trim();
+    const url = document.getElementById('shortcutUrl').value.trim();
     const iconType = document.getElementById('iconType').value;
-
+    
     if (!name || !url) {
         alert('Please enter both name and URL');
         return;
@@ -834,9 +604,14 @@ function saveShortcut() {
             alert('Please select an image');
             return;
         }
+        
         const reader = new FileReader();
         reader.onload = (e) => {
-            shortcuts.push({ name, url, image: e.target.result });
+            shortcuts.push({ 
+                name, 
+                url, 
+                image: e.target.result 
+            });
             saveData();
             renderShortcuts();
             closeShortcutModal();
@@ -847,9 +622,14 @@ function saveShortcut() {
         reader.readAsDataURL(imageFile);
     } else {
         const letter = document.getElementById('shortcutLetter').value.trim() || name[0] || 'X';
-        const color = document.getElementById('shortcutColor').value || '#666';
-
-        shortcuts.push({ name, url, letter: letter.toUpperCase(), color });
+        const color = document.getElementById('shortcutColor').value;
+        
+        shortcuts.push({ 
+            name, 
+            url, 
+            letter: letter.toUpperCase(), 
+            color 
+        });
         saveData();
         renderShortcuts();
         closeShortcutModal();
@@ -858,226 +638,316 @@ function saveShortcut() {
         }
     }
 }
+
 function deleteShortcutFromCustomize(i) {
     shortcuts.splice(i, 1);
     saveData();
     openCustomizeModal();
 }
 
-let draggedItem = null;
-
-function handleDragStart(e) {
-    //`this` is li
-    draggedItem = {
-        category: this.dataset.category,
-        index: parseInt(this.dataset.index, 10),
-        text: todos[this.dataset.category][this.dataset.index].text,
-        duration: todos[this.dataset.category][this.dataset.index].duration
-    };
-    this.classList.add('dragging');
+//quick add and task suggestions
+function updateTaskSuggestions() {
+    const datalist = document.getElementById('taskSuggestions');
+    if (!datalist) return;
+    
+    datalist.innerHTML = '';
+    
+    //sort templates by usage
+    const sortedTemplates = [...taskTemplates]
+        .sort((a, b) => (b.uses || 0) - (a.uses || 0))
+        .slice(0, 10);
+    
+    sortedTemplates.forEach(template => {
+        const option = document.createElement('option');
+        option.value = template.text;
+        datalist.appendChild(option);
+    });
 }
 
-function handleDragEnd(e) {
-    this.classList.remove('dragging');
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    //highlight target hour slot
-    const parent = this.closest('.time-slot');
-    if (parent) {
-        parent.classList.add('drop-zone');
-    }
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    const parent = this.closest('.time-slot');
-    if (parent) {
-        parent.classList.remove('drop-zone');
-    }
-
-    if (draggedItem && parent) {
-        const hour = parseInt(parent.dataset.hour, 10);
-
-        schedule.push({
-            ...draggedItem,
-            hour,
-            startMinute: 0
+function openQuickAddModal() {
+    const modal = document.getElementById('quickAddModal');
+    const list = document.getElementById('quickAddList');
+    
+    list.innerHTML = '';
+    
+    if (taskTemplates.length === 0) {
+        list.innerHTML = '<p style="color: #888; text-align: center;">No common tasks yet. Add tasks normally and they\'ll appear here!</p>';
+    } else {
+        const sortedTemplates = [...taskTemplates]
+            .sort((a, b) => (b.uses || 0) - (a.uses || 0))
+            .slice(0, 15);
+        
+        const priorityLabels = {
+            low: 'Low',
+            medium: 'Med',
+            high: 'High',
+            urgent: 'Urgent'
+        };
+        
+        sortedTemplates.forEach(template => {
+            const task = document.createElement('div');
+            task.className = 'quick-add-task';
+            task.innerHTML = `
+                <div class="quick-add-task-info">
+                    <div class="quick-add-task-name">
+                        ${template.text}
+                        <span class="priority-badge ${template.priority || 'medium'}">${priorityLabels[template.priority || 'medium']}</span>
+                    </div>
+                    <div class="quick-add-task-meta">${template.category} · ${template.duration} min · Used ${template.uses || 1}x</div>
+                </div>
+            `;
+            task.onclick = () => {
+                const dayData = getCurrentDayData();
+                dayData.todos[template.category].push({ 
+                    text: template.text, 
+                    duration: template.duration,
+                    priority: template.priority || 'medium'
+                });
+                template.uses = (template.uses || 1) + 1;
+                saveData();
+                renderTodos();
+                closeQuickAddModal();
+                
+                //show quick feedback
+                const btn = document.getElementById('quickAddBtn');
+                const original = btn.textContent;
+                btn.textContent = '✓';
+                setTimeout(() => btn.textContent = original, 1000);
+            };
+            list.appendChild(task);
         });
-
-        //remove from todo list
-        todos[draggedItem.category].splice(draggedItem.index, 1);
-
-        saveTodos();
-        renderTodos();
-        renderSchedule();
-
-        draggedItem = null;
     }
+    
+    modal.classList.add('active');
 }
 
-//remove drop zone when drag leaves
-document.addEventListener('dragleave', (e) => {
-    if (e.target.classList && e.target.classList.contains('time-slot-content')) {
-        e.target.parentElement.classList.remove('drop-zone');
-    }
-});
+function closeQuickAddModal() {
+    document.getElementById('quickAddModal').classList.remove('active');
+}
 
-document.addEventListener('click', (e) => {
-    const target = e.target;
-
-    //delete todo
-    if (target.classList.contains('delete-btn')) {
-        const cat = target.dataset.category;
-        const idx = target.dataset.index;
-        if (cat != null && idx != null) {
-            deleteTodo(cat, idx);
-        }
+function copyYesterdayTasks() {
+    const yesterday = new Date(currentViewDate);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = getDateKey(yesterday);
+    const todayKey = getDateKey(currentViewDate);
+    
+    if (!dailyData[yesterdayKey]) {
+        alert('No tasks from yesterday to copy!');
         return;
     }
-
-    //remove scheduled
-    if (target.classList.contains('remove-scheduled')) {
-        const idx = target.dataset.index;
-        removeScheduled(idx);
-        return;
-    }
-
-    //complete scheduled
-    if (target.classList.contains('complete-btn')) {
-        const idx = target.dataset.index;
-        completeTask(idx);
-        return;
-    }
-
-    //delete shortcut
-    if (target.classList.contains('delete-shortcut')) {
-        const idx = target.dataset.index;
-        deleteShortcut(idx);
-        return;
-    }
-
-    //open shortcut modal if add button clicked
-    if (target.closest && target.closest('.add-shortcut')) {
-        openModal();
-        return;
-    }
-
-    //delete completed item
-    if (target.classList.contains('delete-completed')) {
-        const idx = target.dataset.index;
-        removeCompleted(idx);
-        return;
-    }
-});
-
-document.addEventListener('keydown', (e) => {
-    const todoInput = document.getElementById('todoInput');
-    if (!todoInput) return;
-    if (document.activeElement === todoInput && e.key === 'Enter') {
-        addTodo();
-    }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    const cancelBtn = document.getElementById('cancelBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-    if (saveBtn) {
-        saveBtn.addEventListener('click', () => {
-            const nameEl = document.getElementById('siteName');
-            const urlEl = document.getElementById('siteUrl');
-            const letterEl = document.getElementById('iconLetter');
-            const colorEl = document.getElementById('iconColor');
-            const uploadEl = document.getElementById('iconUpload');
-
-            const name = nameEl ? nameEl.value.trim() : '';
-            const url = urlEl ? urlEl.value.trim() : '';
-            const letter = letterEl ? letterEl.value.trim() : '';
-            const color = colorEl ? colorEl.value : '#cc0000';
-            const file = uploadEl ? uploadEl.files[0] : null;
-
-            if (!name || !url) return;
-
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    shortcuts.push({ name, url, image: ev.target.result });
-                    saveShortcuts();
-                    renderShortcuts();
-                    closeModal();
-                };
-                reader.readAsDataURL(file);
-            } else {
-                shortcuts.push({ name, url, letter: letter || name[0] || 'X', color });
-                saveShortcuts();
-                renderShortcuts();
-                closeModal();
+    
+    const yesterdayData = dailyData[yesterdayKey];
+    const todayData = getCurrentDayData();
+    
+    let copiedCount = 0;
+    
+    //copy incomplete todos
+    ['academic', 'lifestyle'].forEach(cat => {
+        yesterdayData.todos[cat]?.forEach(todo => {
+            //check if not already in today's list
+            const exists = todayData.todos[cat].some(
+                t => t.text === todo.text && t.duration === todo.duration
+            );
+            if (!exists) {
+                todayData.todos[cat].push({ 
+                    text: todo.text,
+                    duration: todo.duration,
+                    priority: todo.priority || 'medium'
+                });
+                copiedCount++;
             }
         });
+    });
+    
+    //copy incomplete scheduled tasks
+    yesterdayData.schedule?.forEach(item => {
+        if (!item.completed) {
+            const exists = todayData.todos[item.category].some(
+                t => t.text === item.text && t.duration === item.duration
+            );
+            if (!exists) {
+                todayData.todos[item.category].push({ 
+                    text: item.text, 
+                    duration: item.duration,
+                    priority: item.priority || 'medium'
+                });
+                copiedCount++;
+            }
+        }
+    });
+    
+    if (copiedCount > 0) {
+        saveData();
+        renderTodos();
+        alert(`Copied ${copiedCount} incomplete task${copiedCount > 1 ? 's' : ''} from yesterday!`);
+    } else {
+        alert('All yesterday\'s tasks are already in today\'s list!');
     }
+}
 
-    //block modal buttons
-    const cancelBlockBtn = document.getElementById('cancelBlockBtn');
-    const saveBlockBtn = document.getElementById('saveBlockBtn');
-    if (cancelBlockBtn) cancelBlockBtn.addEventListener('click', closeBlockModal);
-    if (saveBlockBtn) {
-        saveBlockBtn.addEventListener('click', () => {
-            ['A','B','C','D','E','F','G','H'].forEach(block => {
-                const input = document.getElementById(`block${block}`);
-                const spare = document.getElementById(`spare${block}`);
-                if (input) blockNames[block] = input.value.trim();
-                if (spare) blockIsSpare[block] = spare.checked;
-            });
-
-            saveTodos();
-            updateBlockSchedule();
-            generateTimeSlots();
-            closeBlockModal();
-        });
-    }
-
-    //date modal buttons
-    const cancelDateBtn = document.getElementById('cancelDateBtn');
-    const saveDateBtn = document.getElementById('saveDateBtn');
-    if (cancelDateBtn) cancelDateBtn.addEventListener('click', closeDateModal);
-    if (saveDateBtn) saveDateBtn.addEventListener('click', saveStartDate);
-
-    const setScheduleBtn = document.getElementById('setScheduleBtn');
-    const editBlocksBtn = document.getElementById('editBlocksBtn');
-    if (setScheduleBtn) setScheduleBtn.addEventListener('click', openDateModal);
-    if (editBlocksBtn) editBlocksBtn.addEventListener('click', openBlockModal);
-
-    //navigation arrows
-    const prevDayBtn = document.getElementById('prevDay');
-    const nextDayBtn = document.getElementById('nextDay');
-    if (prevDayBtn) prevDayBtn.addEventListener('click', () => navigateDay(-1));
-    if (nextDayBtn) nextDayBtn.addEventListener('click', () => navigateDay(1));
-
-    //todo buttons
-    const addTodoBtn = document.getElementById('addTodoBtn');
-    const todoInput = document.getElementById('todoInput');
-    if (addTodoBtn) addTodoBtn.addEventListener('click', addTodo);
-    if (todoInput) {
-        todoInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addTodo();
-        });
-    }
-
-    //spare checkbox listeners
+function openBlockModal() {
     ['A','B','C','D','E','F','G','H'].forEach(block => {
-        const spare = document.getElementById(`spare${block}`);
-        if (spare) {
-            spare.addEventListener('change', () => toggleBlockInput(block));
+        document.getElementById(`block${block}`).value = blockNames[block] || '';
+        document.getElementById(`spare${block}`).checked = blockIsSpare[block] || false;
+        toggleBlockInput(block);
+    });
+    document.getElementById('blockModal').classList.add('active');
+}
+
+function closeBlockModal() {
+    document.getElementById('blockModal').classList.remove('active');
+}
+
+function saveBlocks() {
+    ['A','B','C','D','E','F','G','H'].forEach(block => {
+        blockNames[block] = document.getElementById(`block${block}`).value.trim();
+        blockIsSpare[block] = document.getElementById(`spare${block}`).checked;
+    });
+    saveData();
+    generateTimeSlots();
+    closeBlockModal();
+}
+
+function toggleBlockInput(block) {
+    const spare = document.getElementById(`spare${block}`);
+    const input = document.getElementById(`block${block}`);
+    input.disabled = spare.checked;
+    if (spare.checked) input.value = '';
+}
+
+function openDateModal() {
+    if (scheduleStartDate) {
+        const date = new Date(scheduleStartDate);
+        document.getElementById('cycleStartInput').value = date.toISOString().split('T')[0];
+    }
+    document.getElementById('dateModal').classList.add('active');
+}
+
+function closeDateModal() {
+    document.getElementById('dateModal').classList.remove('active');
+}
+
+function saveStartDate() {
+    const input = document.getElementById('cycleStartInput');
+    if (input.value) {
+        const startDate = new Date(input.value);
+        startDate.setHours(0, 0, 0, 0);
+        scheduleStartDate = startDate.toISOString();
+        saveData();
+        generateTimeSlots();
+        closeDateModal();
+    }
+}
+
+//event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    //click handlers
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-btn') && e.target.dataset.category) {
+            const dayData = getCurrentDayData();
+            const cat = e.target.dataset.category;
+            const idx = parseInt(e.target.dataset.index);
+            dayData.todos[cat].splice(idx, 1);
+            saveData();
+            renderTodos();
+        }
+        
+        if (e.target.classList.contains('remove-scheduled')) {
+            const dayData = getCurrentDayData();
+            const idx = parseInt(e.target.dataset.index);
+            const item = dayData.schedule[idx];
+            dayData.todos[item.category].push({ 
+                text: item.text, 
+                duration: item.duration,
+                priority: item.priority || 'medium'
+            });
+            dayData.schedule.splice(idx, 1);
+            saveData();
+            renderTodos();
+            renderSchedule();
+        }
+        
+        if (e.target.classList.contains('complete-btn')) {
+            const dayData = getCurrentDayData();
+            const idx = parseInt(e.target.dataset.index);
+            const task = dayData.schedule[idx];
+            task.completed = true;
+            dayData.completedTasks.push({ text: task.text, timestamp: new Date().toISOString() });
+            saveData();
+            renderSchedule();
+            renderCompletedTasks();
+        }
+        
+        if (e.target.classList.contains('delete-completed')) {
+            const dayData = getCurrentDayData();
+            const idx = parseInt(e.target.dataset.index);
+            dayData.completedTasks.splice(idx, 1);
+            saveData();
+            renderCompletedTasks();
         }
     });
 
+    //button handlers
+    document.getElementById('customizeBtn').addEventListener('click', openCustomizeModal);
+    document.getElementById('addTodoBtn').addEventListener('click', addTodo);
+    document.getElementById('todoInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addTodo();
+    });
+    
+    //auto-fill duration and category based on input
+    document.getElementById('todoInput').addEventListener('input', (e) => {
+        const text = e.target.value.toLowerCase();
+        const template = taskTemplates.find(t => t.text.toLowerCase().includes(text) && text.length > 2);
+        if (template) {
+            document.getElementById('categorySelect').value = template.category;
+            document.getElementById('durationInput').value = template.duration;
+            document.getElementById('prioritySelect').value = template.priority || 'medium';
+        }
+    });
+    
+    document.getElementById('quickAddBtn')?.addEventListener('click', openQuickAddModal);
+    document.getElementById('closeQuickAddBtn')?.addEventListener('click', closeQuickAddModal);
+    document.getElementById('copyYesterdayBtn')?.addEventListener('click', copyYesterdayTasks);
+    
+    document.getElementById('prevDay').addEventListener('click', () => navigateDay(-1));
+    document.getElementById('nextDay').addEventListener('click', () => navigateDay(1));
+    document.getElementById('editBlocksBtn').addEventListener('click', openBlockModal);
+    document.getElementById('setScheduleBtn').addEventListener('click', openDateModal);
+    
+    //modal buttons
+    document.getElementById('cancelCustomizeBtn').addEventListener('click', closeCustomizeModal);
+    document.getElementById('saveCustomizeBtn').addEventListener('click', saveCustomization);
+    document.getElementById('addShortcutBtn').addEventListener('click', openShortcutModal);
+    document.getElementById('cancelShortcutBtn').addEventListener('click', closeShortcutModal);
+    document.getElementById('saveShortcutBtn').addEventListener('click', saveShortcut);
+    document.getElementById('iconType').addEventListener('change', toggleIconType);
+    document.getElementById('shortcutImage').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const preview = document.getElementById('imagePreview');
+                const img = document.getElementById('previewImg');
+                img.src = event.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    document.getElementById('cancelBlockBtn').addEventListener('click', closeBlockModal);
+    document.getElementById('saveBlockBtn').addEventListener('click', saveBlocks);
+    document.getElementById('cancelDateBtn').addEventListener('click', closeDateModal);
+    document.getElementById('saveDateBtn').addEventListener('click', saveStartDate);
+    
+    //spare checkboxes
+    ['A','B','C','D','E','F','G','H'].forEach(block => {
+        document.getElementById(`spare${block}`).addEventListener('change', () => toggleBlockInput(block));
+    });
+
+    //color preview
     document.getElementById('primaryColor').addEventListener('input', (e) => {
-        document.getElementById.apply('primaryPreview').style.backgroundColor = e.target.value;
-    })
-    //initial load of stored data
+        document.getElementById('primaryPreview').style.backgroundColor = e.target.value;
+    });
+
     loadData();
 });
-
-updateDate();

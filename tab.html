@@ -1,208 +1,228 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>New Tab</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <button class="customize-btn" id="customizeBtn">Customize</button>
-        <div class="container">
-            <!--calender & to-do-->
-            <div class="planner">
-                <div class="todo-section">
-                    <h2 id="date"></h2>
+<head>
+    <meta charset="UTF-8">
+    <title>New Tab</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <button class="customize-btn" id="customizeBtn">Customize</button>
 
-                    <div class="todo-input-group">
-                        <input type="text" id="todoInput" placeholder="Add a task...">
-                        <select id="categorySelect">
-                            <option value="academic">Academic</option>
-                            <option value="lifestyle">Lifestyle</option>
-                        </select>
-                        <input type="number" id="durationInput" placeholder="mins" min="15" step="15" value="30">
-                        <button id="addTodoBtn">Add</button>
+    <div class="container">
+        <div class="planner">
+            <div class="todo-section">
+                <h2 id="date"></h2>
+
+                <div class="todo-input-group">
+                    <input type="text" id="todoInput" placeholder="Add a task..." list="taskSuggestions">
+                    <datalist id="taskSuggestions"></datalist>
+                    <select id="categorySelect">
+                        <option value="academic">Academic</option>
+                        <option value="lifestyle">Lifestyle</option>
+                    </select>
+                    <input type="number" id="durationInput" placeholder="mins" min="15" step="15" value="30">
+                    <select id="prioritySelect" title="Priority level">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                    <button id="addTodoBtn">Add</button>
+                    <button id="quickAddBtn" title="Quick add common tasks">+</button>
+                </div>
+
+                <div class="todo-lists">
+                    <div class="todo-column">
+                        <h3>Academic</h3>
+                        <ul id="academicList" class="todo-list"></ul>
                     </div>
-
-                    <div class="todo-lists">
-                        <div class="todo-column">
-                            <h3>Academic</h3>
-                            <ul id="academicList" class="todo-list" data-category="academic"></ul>
-                        </div>
-
-                        <div class="todo-column">
-                            <h3>Lifestyle</h3>
-                            <ul id="lifestyleList" class="todo-list" data-category="lifestyle"></ul>
-                        </div>
-                    </div>
-
-                    <div class="completed-section">
-                        <h3>Completed Today</h3>
-                        <ul id="completedList" class="completed-list"></ul>
+                    <div class="todo-column">
+                        <h3>Lifestyle</h3>
+                        <ul id="lifestyleList" class="todo-list"></ul>
                     </div>
                 </div>
 
-                <div class="calendar">
-                    <div class="schedule-header">
-                        <button id="prevDay" class="nav-arrow">◀</button>
-                        <h3 id="scheduleDate">Today's Schedule</h3>
-                        <button id="nextDay" class="nav-arrow">▶</button>
-                    </div>
-                    <div>
-                        <button id="editBlocksBtn" class="schedule-btn">Edit Classes</button>
-                        <button id="setScheduleBtn" class="schedule-btn">Set Start Date</button>
-                    </div>
-                    <div id="timeBlocks" class="time-blocks"></div>
+                <div class="completed-section">
+                    <h3>Completed Today</h3>
+                    <ul id="completedList" class="completed-list"></ul>
                 </div>
             </div>
-            <div class="shortcuts" id="shortcuts"></div>
-        </div>
 
-        <!--Customization Modal-->
-        <div id="customizeModal" class="modal">
-            <div class="modal-content">
-                <h2>Customize Planner</h2>
-                
-                <h3 style="margin-top: 20px; margin-bottom: 12px;">Colors</h3>
-                <div class="block-inputs">
-                    <div class="block-input-row">
-                        <label>Primary Color:</label>
-                        <input type="color" id="primaryColor" value="#cc0000">
-                        <div class="color-preview" id="primaryPreview"></div>
-                    </div>
+            <div class="calendar">
+                <div class="schedule-header">
+                    <button id="prevDay" class="nav-arrow">◀</button>
+                    <h3 id="scheduleDate">Today's Schedule</h3>
+                    <button id="nextDay" class="nav-arrow">▶</button>
                 </div>
-
-                <h3 style="margin-top: 20px; margin-bottom: 12px;">Shortcuts</h3>
-                <div class="shortcut-list" id="shortcutList"></div>
-                <button class="add-shortcut-btn" id="addShortcutBtn">Add Shortcut</button>
-
-                <div class="modal-buttons">
-                    <button id="cancelCustomizeBtn">Cancel</button>
-                    <button id="saveCustomizeBtn">Save</button>
+                <div style="margin-bottom: 12px;">
+                    <button id="editBlocksBtn" class="schedule-btn">Edit Classes</button>
+                    <button id="setScheduleBtn" class="schedule-btn">Set Start Date</button>
+                    <button id="copyYesterdayBtn" class="schedule-btn" title="Copy yesterday's incomplete tasks">Yesterday</button>
                 </div>
+                <div id="timeBlocks" class="time-blocks"></div>
             </div>
         </div>
+        <div class="shortcuts" id="shortcuts"></div>
+    </div>
 
-        <!-- Block Modal -->
-        <div id="blockModal" class="modal">
-            <div class="modal-content">
-                <h2>Edit Your Course Schedule</h2>
-                <div class="block-inputs">
-                    <div class="block-input-row">
-                        <label>Block A:</label>
-                        <input type="checkbox" id="spareA">
-                        <label style="min-width: auto;">Spare</label>
-                        <input type="text" id="blockA" placeholder="Course name">
-                    </div>
-                    <div class="block-input-row">
-                        <label>Block B:</label>
-                        <input type="checkbox" id="spareB">
-                        <label style="min-width: auto;">Spare</label>
-                        <input type="text" id="blockB" placeholder="Course name">
-                    </div>
-                    <div class="block-input-row">
-                        <label>Block C:</label>
-                        <input type="checkbox" id="spareC">
-                        <label style="min-width: auto;">Spare</label>
-                        <input type="text" id="blockC" placeholder="Course name">
-                    </div>
-                    <div class="block-input-row">
-                        <label>Block D:</label>
-                        <input type="checkbox" id="spareD">
-                        <label style="min-width: auto;">Spare</label>
-                        <input type="text" id="blockD" placeholder="Course name">
-                    </div>
-                    <div class="block-input-row">
-                        <label>Block E:</label>
-                        <input type="checkbox" id="spareE">
-                        <label style="min-width: auto;">Spare</label>
-                        <input type="text" id="blockE" placeholder="Course name">
-                    </div>
-                    <div class="block-input-row">
-                        <label>Block F:</label>
-                        <input type="checkbox" id="spareF">
-                        <label style="min-width: auto;">Spare</label>
-                        <input type="text" id="blockF" placeholder="Course name">
-                    </div>
-                    <div class="block-input-row">
-                        <label>Block G:</label>
-                        <input type="checkbox" id="spareG">
-                        <label style="min-width: auto;">Spare</label>
-                        <input type="text" id="blockG" placeholder="Course name">
-                    </div>
-                    <div class="block-input-row">
-                        <label>Block H:</label>
-                        <input type="checkbox" id="spareH">
-                        <label style="min-width: auto;">Spare</label>
-                        <input type="text" id="blockH" placeholder="Course name">
-                    </div>
-                </div>
-                <div class="modal-buttons">
-                    <button id="cancelBlockBtn">Cancel</button>
-                    <button id="saveBlockBtn">Save</button>
+    <!-- Customization Modal -->
+    <div id="customizeModal" class="modal">
+        <div class="modal-content">
+            <h2>Customize Planner</h2>
+            
+            <h3 style="margin-top: 20px; margin-bottom: 12px;">Colors</h3>
+            <div class="block-inputs">
+                <div class="block-input-row">
+                    <label>Primary Color:</label>
+                    <input type="color" id="primaryColor" value="#cc0000">
+                    <div class="color-preview" id="primaryPreview"></div>
                 </div>
             </div>
-        </div>
 
-        <!--Date Modal-->
-        <div id="dateModal" class="modal">
-            <div class="modal-content">
-                <h2>Set Schedule Start Date</h2>
-                <div class="block-inputs">
-                    <div class="block-input-row">
-                        <label>Day 1 Date:</label>
-                        <input type="date" id="cycleStartInput">
-                    </div>
-                </div>
-                <div class="modal-buttons">
-                    <button id="cancelDateBtn">Cancel</button>
-                    <button id="saveDateBtn">Save</button>
-                </div>
+            <h3 style="margin-top: 20px; margin-bottom: 12px;">Shortcuts</h3>
+            <div class="shortcut-list" id="shortcutList"></div>
+            <button class="add-shortcut-btn" id="addShortcutBtn">Add Shortcut</button>
+
+            <div class="modal-buttons">
+                <button id="cancelCustomizeBtn">Cancel</button>
+                <button id="saveCustomizeBtn">Save</button>
             </div>
         </div>
+    </div>
 
-        <!--Shortcut Modal-->
-        <div id="shortcutModal" class="modal">
-            <div class="modal-content">
-                <h2>Add Shortcut</h2>
-                <div class="block-inputs">
-                    <div class="block-input-row">
-                        <label>Name:</label>
-                        <input type="text" id="shortcutName" placeholder="Google">
-                    </div>
-                    <div class="block-input-row">
-                        <label>URL:</label>
-                        <input type="text" id="shortcutUrl" placeholder="https://google.com">
-                    </div>
-                    <div class="block-input-row">
-                        <label>Icon Type:</label>
-                        <select id="iconType">
-                            <option value="letter">Letter</option>
-                            <option value="image">Upload Image</option>
-                        </select>
-                    </div>
-                    <div class="block-input-row" id="letterIconRow">
-                        <label>Icon Letter:</label>
-                        <input type="text" id="shortcutLetter" maxlength="1" placeholder="G">
-                    </div>
-                    <div class="block-input-row" id="colorIconRow">
-                        <label>Icon Color:</label>
-                        <input type="color" id="shortcutColor" value="#666666">
-                    </div>
-                    <div class="block-input-row" id="imageIconRow" style="display: none;">
-                        <label>Upload Icon:</label>
-                        <input type="file" id="shortcutImage" accept="image/*">
-                    </div>
-                    <div id="imagePreview" style="display: none; margin: 12px 0;">
-                        <img id="previewImg" style="max-width: 100px; max-height: 100px; border-radius: 8px; border: 2px solid var(--border-color);">
-                    </div>
+    <!-- Shortcut Modal -->
+    <div id="shortcutModal" class="modal">
+        <div class="modal-content">
+            <h2>Add Shortcut</h2>
+            <div class="block-inputs">
+                <div class="block-input-row">
+                    <label>Name:</label>
+                    <input type="text" id="shortcutName" placeholder="Google">
                 </div>
-                <div class="modal-buttons">
-                    <button id="cancelShortcutBtn">Cancel</button>
-                    <button id="saveShortcutBtn">Add</button>
+                <div class="block-input-row">
+                    <label>URL:</label>
+                    <input type="text" id="shortcutUrl" placeholder="https://google.com">
+                </div>
+                <div class="block-input-row">
+                    <label>Icon Type:</label>
+                    <select id="iconType">
+                        <option value="letter">Letter</option>
+                        <option value="image">Upload Image</option>
+                    </select>
+                </div>
+                <div class="block-input-row" id="letterIconRow">
+                    <label>Icon Letter:</label>
+                    <input type="text" id="shortcutLetter" maxlength="1" placeholder="G">
+                </div>
+                <div class="block-input-row" id="colorIconRow">
+                    <label>Icon Color:</label>
+                    <input type="color" id="shortcutColor" value="#666666">
+                </div>
+                <div class="block-input-row" id="imageIconRow" style="display: none;">
+                    <label>Upload Icon:</label>
+                    <input type="file" id="shortcutImage" accept="image/*">
+                </div>
+                <div id="imagePreview" style="display: none; margin: 12px 0;">
+                    <img id="previewImg" style="max-width: 100px; max-height: 100px; border-radius: 8px; border: 2px solid var(--border-color);">
                 </div>
             </div>
+            <div class="modal-buttons">
+                <button id="cancelShortcutBtn">Cancel</button>
+                <button id="saveShortcutBtn">Add</button>
+            </div>
         </div>
+    </div>
 
-        <script src="script.js"></script>
-    </body>
+    <!-- Block Modal -->
+    <div id="blockModal" class="modal">
+        <div class="modal-content">
+            <h2>Edit Your Course Schedule</h2>
+            <div class="block-inputs">
+                <div class="block-input-row">
+                    <label>Block A:</label>
+                    <input type="checkbox" id="spareA">
+                    <label style="min-width: auto;">Spare</label>
+                    <input type="text" id="blockA" placeholder="Course name">
+                </div>
+                <div class="block-input-row">
+                    <label>Block B:</label>
+                    <input type="checkbox" id="spareB">
+                    <label style="min-width: auto;">Spare</label>
+                    <input type="text" id="blockB" placeholder="Course name">
+                </div>
+                <div class="block-input-row">
+                    <label>Block C:</label>
+                    <input type="checkbox" id="spareC">
+                    <label style="min-width: auto;">Spare</label>
+                    <input type="text" id="blockC" placeholder="Course name">
+                </div>
+                <div class="block-input-row">
+                    <label>Block D:</label>
+                    <input type="checkbox" id="spareD">
+                    <label style="min-width: auto;">Spare</label>
+                    <input type="text" id="blockD" placeholder="Course name">
+                </div>
+                <div class="block-input-row">
+                    <label>Block E:</label>
+                    <input type="checkbox" id="spareE">
+                    <label style="min-width: auto;">Spare</label>
+                    <input type="text" id="blockE" placeholder="Course name">
+                </div>
+                <div class="block-input-row">
+                    <label>Block F:</label>
+                    <input type="checkbox" id="spareF">
+                    <label style="min-width: auto;">Spare</label>
+                    <input type="text" id="blockF" placeholder="Course name">
+                </div>
+                <div class="block-input-row">
+                    <label>Block G:</label>
+                    <input type="checkbox" id="spareG">
+                    <label style="min-width: auto;">Spare</label>
+                    <input type="text" id="blockG" placeholder="Course name">
+                </div>
+                <div class="block-input-row">
+                    <label>Block H:</label>
+                    <input type="checkbox" id="spareH">
+                    <label style="min-width: auto;">Spare</label>
+                    <input type="text" id="blockH" placeholder="Course name">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="cancelBlockBtn">Cancel</button>
+                <button id="saveBlockBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Modal -->
+    <div id="dateModal" class="modal">
+        <div class="modal-content">
+            <h2>Set Schedule Start Date</h2>
+            <div class="block-inputs">
+                <div class="block-input-row">
+                    <label>Day 1 Date:</label>
+                    <input type="date" id="cycleStartInput">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="cancelDateBtn">Cancel</button>
+                <button id="saveDateBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Add Modal -->
+    <div id="quickAddModal" class="modal">
+        <div class="modal-content">
+            <h2>Quick Add Tasks</h2>
+            <p style="color: #ddd; margin-bottom: 16px;">Add frequently used tasks quickly</p>
+            <div id="quickAddList" class="block-inputs"></div>
+            <div class="modal-buttons">
+                <button id="closeQuickAddBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
 </html>
