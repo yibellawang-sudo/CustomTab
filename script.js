@@ -54,29 +54,75 @@ function saveData() {
         customColors,
         taskTemplates
     };
-    localStorage.setItem('plannerData', JSON.stringify(data));
+    
+    //chrome storage API
+    if (chrome && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ plannerData: data }, function() {
+            if (chrome.runtime.lastError) {
+                console.error('Error saving data:', chrome.runtime.lastError);
+            }
+        });
+    } else {
+        //fallback to localStorage for testing outside Chrome extension
+        localStorage.setItem('plannerData', JSON.stringify(data));
+    }
 }
 
 function loadData() {
-    try {
-        const stored = localStorage.getItem('plannerData');
-        if (stored) {
-            const data = JSON.parse(stored);
-            dailyData = data.dailyData || {};
-            shortcuts = data.shortcuts || [];
-            scheduleStartDate = data.scheduleStartDate;
-            blockNames = data.blockNames || { A: '', B: '', C: '', D: '', E: '', F: '', G: '', H: '' };
-            blockIsSpare = data.blockIsSpare || { A: false, B: false, C: false, D: false, E: false, F: false, G: false, H: false };
-            customColors = data.customColors || { primary: '#cc0000' };
-            taskTemplates = data.taskTemplates || [];
+    //chrome storage API
+    if (chrome && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get(['plannerData'], function(result) {
+            if (chrome.runtime.lastError) {
+                console.error('Error loading data:', chrome.runtime.lastError);
+                initializeData();
+                return;
+            }
+            
+            if (result.plannerData) {
+                const data = result.plannerData;
+                dailyData = data.dailyData || {};
+                shortcuts = data.shortcuts || [];
+                scheduleStartDate = data.scheduleStartDate;
+                blockNames = data.blockNames || { A: '', B: '', C: '', D: '', E: '', F: '', G: '', H: '' };
+                blockIsSpare = data.blockIsSpare || { A: false, B: false, C: false, D: false, E: false, F: false, G: false, H: false };
+                customColors = data.customColors || { primary: '#cc0000' };
+                taskTemplates = data.taskTemplates || [];
+            }
+            
+            applyCustomColors();
+            renderAll();
+            checkFirstTimeSetup();
+        });
+    } else {
+        //fallback to localStorage for testing
+        try {
+            const stored = localStorage.getItem('plannerData');
+            if (stored) {
+                const data = JSON.parse(stored);
+                dailyData = data.dailyData || {};
+                shortcuts = data.shortcuts || [];
+                scheduleStartDate = data.scheduleStartDate;
+                blockNames = data.blockNames || { A: '', B: '', C: '', D: '', E: '', F: '', G: '', H: '' };
+                blockIsSpare = data.blockIsSpare || { A: false, B: false, C: false, D: false, E: false, F: false, G: false, H: false };
+                customColors = data.customColors || { primary: '#cc0000' };
+                taskTemplates = data.taskTemplates || [];
+            }
+        } catch (e) {
+            console.error('Error loading data:', e);
         }
-    } catch (e) {
-        console.error('Error loading data:', e);
+        applyCustomColors();
+        renderAll();
+        checkFirstTimeSetup();
     }
+}
+
+function initializeData() {
     applyCustomColors();
     renderAll();
-    
-    //auto-open setup modal if first time
+    checkFirstTimeSetup();
+}
+
+function checkFirstTimeSetup() {
     const today = getDateKey(new Date());
     if (!scheduleStartDate && (!dailyData[today] || Object.keys(dailyData).length === 0)) {
         setTimeout(() => {
@@ -303,7 +349,6 @@ function renderTodos() {
         });
     });
     
-    //update autocomplete suggestions
     updateTaskSuggestions();
 }
 
@@ -428,7 +473,7 @@ function addTodo() {
             const existing = taskTemplates.filter(t => 
                 t.category === category && t.duration === duration
             );
-            if (existing.length < 10) { //limit to 10 templates per category
+            if (existing.length < 10) {
                 taskTemplates.push({ text, category, duration, priority, uses: 1 });
             }
         } else {
